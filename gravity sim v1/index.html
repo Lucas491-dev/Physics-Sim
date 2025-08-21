@@ -24,9 +24,10 @@
         // === Shaders ===
         const vertexShaderSource = `
         attribute vec2 aPosition;
+        uniform mat3 uView;   // 2D camera matrix
         void main() {
-            gl_Position = vec4(aPosition, 0.0, 1.0);
-        }
+            vec3 pos = uView * vec3(aPosition, 1.0);
+            gl_Position = vec4(pos.xy, 0.0, 1.0);}
         `;
 
         const fragmentShaderSource = `
@@ -69,13 +70,51 @@
         const program = createProgram(gl, vertexShader, fragmentShader);
         gl.useProgram(program);
         const aPosition = gl.getAttribLocation(program, 'aPosition');
+        let zoom = 1.0, panX= 0, panyY=0; // Initialize zoom and pan variables for the camera
+        const uView = gl.getUniformLocation(program, 'uView'); //set the uniform location for the view matrix
+        let dragging = false;
+
+        canvas.addEventListener('wheel', function(e) {
+            e.preventDefault();
+                // Zoom in/out, when the mouse wheel is scrolled
+                zoom *= e.deltaY > 0 ? 0.9 : 1.1;
+                zoom = Math.max(0.01, Math.min(zoom, 20));
+        });
+        canvas.addEventListener('mousedown', function(e) {
+            if (e.button === 0) { // Left mouse button
+                dragging = true;
+                canvas.addEventListener('mousemove', onMouseMove);
+            }
+        });
+        canvas.addEventListener("mouseup", () => dragging = false);
+        function onMouseMove(e) {
+            if (dragging ==true){ // If not dragging, do nothing
+            // Pan the camera when the mouse is moved while holding down the left button
+            panX += (e.movementX / canvas.width) * 2 / zoom;
+            panyY -= (e.movementY / canvas.height) * 2 / zoom; // Invert Y-axis 
+            gl.uniformMatrix3fv(uView, false, getViewMatrix())//update the view matrix with the new pan and zoom values
+            } 
+        }
+        function getViewMatrix() {
+            //uses a 3x3 matrix to represent the 2D camera position and zoom level
+            //the use of a 3x3 is because we this is using homogeneous coordinates which is like a system of coordinates that allows for 
+            // translation, rotation, and scaling in a single matrix for cartesian coordinates
+            //although this is a bit goofy its standard in 2d graphics coz it can do multiple transformations in one go - should help speed up rendering 
+                return new Float32Array([
+                    zoom, 0,    0,
+                    0,    zoom, 0,
+                    panX,    panyY,    1
+                ]);
+            }
+
+
         let bodies = [
             {
                 position: [-0.5, 0.8],
                 velocity: [0.002, 0],
                 force: [0, 0],
                 mass: 4.8 * 10 ** 22,
-                radius: 0.0025,
+                radius: 0.01,
                 trailPositions: []
             },
             {
@@ -90,8 +129,8 @@
                 position: [-0.5, -0.5],
                 velocity: [0, 0.003],
                 force: [0, 0],
-                mass: 4.8 * 10 ** 20,
-                radius: 0.01,
+                mass: 4.8 * 10 ** 20    ,
+                radius: 0.004,
                 trailPositions: []
             }
         ];
@@ -135,6 +174,8 @@
     let trailBuffer = gl.createBuffer();
     function calculateGravity(){
         gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.uniformMatrix3fv(uView, false, getViewMatrix()); //set view with matrix
+        checkCollisions()
         for (let i = 0; i < bodies.length; i++) {
             drawCircle(bodies[i].position[0], bodies[i].position[1], bodies[i].radius);
        
@@ -166,13 +207,12 @@
             }
             bodies[i].velocity[1] += (bodies[i].force[1]/bodies[i].mass)  ; //updates the velocity vector by the force vector divided by the mass of the object using newton's second of motion law F=ma
             bodies[i].velocity[0] += (bodies[i].force[0]/bodies[i].mass) ;
-
+           
             // console.log (bodies[i].velocity)
             updateTrailPosition(i)
          }
-         
+
                 requestAnimationFrame(calculateGravity);
-            
     }
     calculateGravity()
     function updateTrailPosition(i){
@@ -184,12 +224,43 @@
         gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(bodies[i].trailPositions), gl.DYNAMIC_DRAW);
         //create a new vertex by drawing the trial locations as unique points 
+
         gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
         gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(aPosition);
      
         gl.drawArrays(gl.LINE_STRIP, 0,  bodies[i].trailPositions.length / 2);
 
+    }
+    function checkCollisions(){
+       for (let i = bodies.length -1; i >=0; i--) {
+        //iterate through each body
+                for (let z=bodies.length -1; z >=0; z--){
+                //check if the two bodies are not the same
+                if (i!==z){
+                    let spatiumVector = [bodies[z].position[0]-bodies[i].position[0], bodies[z].position[1]-bodies[i].position[1]] //reuses to original vector code
+                    let distanceBetweenBodies = (Math.sqrt(spatiumVector[0]**2 + spatiumVector[1]**2)) 
+                    let keepBody, bodyRemove
+                    if (distanceBetweenBodies < (bodies[i].radius + bodies[z].radius)){
+                        if (bodies[i].mass <= bodies[z].mass){
+                            keepBody = i;
+                            bodyRemove = z;
+                        }else{
+                            keepBody = z
+                            bodyRemove = i;
+                        }
+
+                        bodies[keepBody].mass += bodies[bodyRemove].mass
+                        bodies[keepBody].radius += bodies[bodyRemove].radius
+                        bodies.splice(z,1)
+                        break;
+                    }
+
+                }
+            }
+
+
+        }
     }
     </script>
     </body>
