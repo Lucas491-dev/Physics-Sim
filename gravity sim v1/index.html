@@ -5,12 +5,17 @@
     <title>WebGL Circle</title>
     <style>
         body { margin: 0; }
-        
+         #glCanvas {
+        display: block;
+        width: 100vh;
+        height: 100vh;
+    }
     </style>
 </head>
     <body>
-    <canvas id="glCanvas" width="500" height="500"></canvas>
     
+    <canvas id="glCanvas"></canvas>
+   
         <script>
         const canvas = document.getElementById('glCanvas');
         const gl = canvas.getContext('webgl');
@@ -63,15 +68,33 @@
 
         const program = createProgram(gl, vertexShader, fragmentShader);
         gl.useProgram(program);
-        let position =[[-0.5,0] , [0.5,0.8],]
-        let velocityVector = [[0.0005,0], [-0.0001,0]]
-        let forceVector =[[0,0],[0,0]]
-        let mass =[4.8 * 10  ** 22, 6.347673 * 10 ** 22] 
+        let bodies = [
+            {
+                position: [-0.5, 0.8],
+                velocity: [0.002, 0],
+                force: [0, 0],
+                mass: 4.8 * 10 ** 22,
+                radius: 0.0025  
+            },
+            {
+                position: [0, 0],
+                velocity: [0, 0],
+                force: [0, 0],
+                mass: 8 * 10 ** 23,
+                radius: 0.05
+            },
+              {
+                position: [-0.5, -0.5],
+                velocity: [0, 0.003],
+                force: [0, 0],
+                mass: 4.8 * 10 ** 20,
+                radius: 0.01
+            }
+        ];
         
-        let radiusList = [0.025, 0.05];
-        function drawCircle(X,Y,r){
+        function drawCircle(X,Y,radius){
             const numSegments = 100; // more = smoother
-            const radius = r;
+           
             let vertices = [X, Y];
             for (let i = 0; i <= numSegments; i++) {
                 let angle = i * 2 * Math.PI / numSegments;
@@ -95,6 +118,8 @@
             gl.drawArrays(gl.TRIANGLE_FAN, 0, numSegments + 2);
         }
         // === Draw ===
+        canvas.width = window.innerHeight;
+        canvas.height = window.innerHeight;
         gl.viewport(0, 0, canvas.width, canvas.height);
         gl.clearColor(0, 0, 0, 1); 
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -106,53 +131,38 @@
 
     function calculateGravity(){
         gl.clear(gl.COLOR_BUFFER_BIT);
-        for (let i = 0; i < position.length; i++) {
-            drawCircle(position[i][0], position[i][1], radiusList[i]);
-            // Update position by velocity vectors
-            position[i][0] += velocityVector[i][0];
-            position[i][1] += velocityVector[i][1];
-            forceVector[i] = [0, 0]; // Reset force vector for each object
-            // Gravity effect
-            // velocityVector[i][1] += -9.81 / 10000; //basic falling effect
-            // bottom collision
-            if (position[i][1] < -0.9) {
-             
-                velocityVector[i][1] = -(velocityVector[i][1] * 0.6);
-            }
-             if (position[i][1] > 0.9) {
-               
-                velocityVector[i][1] = -(velocityVector[i][1] * 0.6);
-            }
-             if (position[i][0] > 0.9) {
-              
-                velocityVector[i][0] = -(velocityVector[i][0] * 0.6);
-            }
-             if (position[i][0] < -0.9) {
-                
-                velocityVector[i][0] = -(velocityVector[i][0] * 0.6);
-            }
+        for (let i = 0; i < bodies.length; i++) {
+            drawCircle(bodies[i].position[0], bodies[i].position[1], bodies[i].radius);
+       
 
-            for (let z=0; z< position.length; z++){
+            // Update position by velocity vectors
+            bodies[i].position[0] += bodies[i].velocity[0];
+            bodies[i].position[1] += bodies[i].velocity[1];
+            bodies[i].force = [0, 0]; // Reset force vector for each object such that it can be recalculated
+            // Calculate forces between bodies
+            for (let z=0; z< bodies.length; z++){
+                //check if the two bodies are not the same
                 if (i!==z){
-                let spatiumVector = [position[z][0]-position[i][0], position[z][1]-position[i][1]] //creates a 2d vector between the two objects
-                console.log("relational vector "+ spatiumVector)
-                let distanceScalar = (Math.sqrt(spatiumVector[0]**2 + spatiumVector[1]**2)) * 2e6//finds the distance between the two objects and then uses astronomincal to increase scale for more realistic projection
-                console.log("distance:" + distanceScalar)
-                let forceScalar = ( gravity * (mass[i]*mass[z]))/(distanceScalar ** 2); // newton's law of universal gravitation F=G(m1*m2)/r^2
-                console.log("force scalar:" +forceScalar) 
-                let unitSpatiumVector = [spatiumVector[0]/distanceScalar, spatiumVector[1]/distanceScalar]; //converts the distance vector to a unit vector
-                forceVector[i][0] = forceScalar * unitSpatiumVector[0]
-                forceVector[i][1] = forceScalar * unitSpatiumVector[1];
-                //multiplies the unit vector by the force scalar to get the force vector 
-                
-                console.log("force vector: " + forceVector[i][0] + " " + forceVector[i][1])
+                        
+                    let spatiumVector = [bodies[z].position[0]-bodies[i].position[0], bodies[z].position[1]-bodies[i].position[1]] //creates a 2d vector between the two objects
+                    // console.log("relational vector "+ spatiumVector)
+                    let distanceScalar = (Math.sqrt(spatiumVector[0]**2 + spatiumVector[1]**2)) * 2e6//finds the distance between the two objects and then increase scale for more realistic projection
+                    // console.log("distance:" + distanceScalar)
+                    let forceScalar = ( gravity * (bodies[i].mass*bodies[z].mass))/(distanceScalar ** 2); // newton's law of universal gravitation F=G(m1*m2)/r^2
+                    // console.log("force scalar:" +forceScalar) 
+                    let unitSpatiumVector = [spatiumVector[0]/distanceScalar, spatiumVector[1]/distanceScalar]; //converts the distance vector to a unit vector
+                    bodies[i].force[0] += forceScalar * unitSpatiumVector[0]
+                    bodies[i].force[1] += forceScalar * unitSpatiumVector[1];
+                    //multiplies the unit vector by the force scalar to get the force vector 
+                    
+                    // console.log("force vector: " + bodies[i].force[0] + " " + bodies[i].force[1])
                 }
                   
                 
             }
-            velocityVector[i][1] += (forceVector[i][1]/mass[i])  ; //updates the velocity vector by the force vector divided by the mass of the object using newton's second of motion law F=ma
-            velocityVector[i][0] += (forceVector[i][0]/mass[i]) ;
-            console.log (velocityVector[i])
+            bodies[i].velocity[1] += (bodies[i].force[1]/bodies[i].mass)  ; //updates the velocity vector by the force vector divided by the mass of the object using newton's second of motion law F=ma
+            bodies[i].velocity[0] += (bodies[i].force[0]/bodies[i].mass) ;
+            // console.log (bodies[i].velocity)
             
          }
          
