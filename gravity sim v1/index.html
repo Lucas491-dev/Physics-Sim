@@ -68,32 +68,36 @@
 
         const program = createProgram(gl, vertexShader, fragmentShader);
         gl.useProgram(program);
+        const aPosition = gl.getAttribLocation(program, 'aPosition');
         let bodies = [
             {
                 position: [-0.5, 0.8],
                 velocity: [0.002, 0],
                 force: [0, 0],
                 mass: 4.8 * 10 ** 22,
-                radius: 0.0025  
+                radius: 0.0025,
+                trailPositions: []
             },
             {
                 position: [0, 0],
                 velocity: [0, 0],
                 force: [0, 0],
                 mass: 8 * 10 ** 23,
-                radius: 0.05
+                radius: 0.05,
+                trailPositions: []
             },
               {
                 position: [-0.5, -0.5],
                 velocity: [0, 0.003],
                 force: [0, 0],
                 mass: 4.8 * 10 ** 20,
-                radius: 0.01
+                radius: 0.01,
+                trailPositions: []
             }
         ];
         
         function drawCircle(X,Y,radius){
-            const numSegments = 100; // more = smoother
+            const numSegments = 500; // more = smoother
            
             let vertices = [X, Y];
             for (let i = 0; i <= numSegments; i++) {
@@ -109,7 +113,7 @@
             gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
-            const aPosition = gl.getAttribLocation(program, 'aPosition');
+          
             gl.enableVertexAttribArray(aPosition);
             gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
 
@@ -127,8 +131,8 @@
        
         
        
-   const gravity = 6.6743* 10 ** -11
-
+    const gravity = 6.6743* 10 ** -11
+    let trailBuffer = gl.createBuffer();
     function calculateGravity(){
         gl.clear(gl.COLOR_BUFFER_BIT);
         for (let i = 0; i < bodies.length; i++) {
@@ -162,15 +166,31 @@
             }
             bodies[i].velocity[1] += (bodies[i].force[1]/bodies[i].mass)  ; //updates the velocity vector by the force vector divided by the mass of the object using newton's second of motion law F=ma
             bodies[i].velocity[0] += (bodies[i].force[0]/bodies[i].mass) ;
+
             // console.log (bodies[i].velocity)
-            
+            updateTrailPosition(i)
          }
          
                 requestAnimationFrame(calculateGravity);
             
     }
     calculateGravity()
+    function updateTrailPosition(i){
+        bodies[i].trailPositions.push(bodies[i].position[0], bodies[i].position[1]);
+        if (bodies[i].trailPositions.length > 200 * 2) { // if there are too many points in the trial get rid of the first few
+            bodies[i].trailPositions.splice(0, 2);
+        }
+        // console.log(bodies[i].trailPositions)
+        gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(bodies[i].trailPositions), gl.DYNAMIC_DRAW);
+        //create a new vertex by drawing the trial locations as unique points 
+        gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
+        gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(aPosition);
+     
+        gl.drawArrays(gl.LINE_STRIP, 0,  bodies[i].trailPositions.length / 2);
 
+    }
     </script>
     </body>
 </html>
