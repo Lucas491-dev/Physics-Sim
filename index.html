@@ -5,20 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>WebGL Circle</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <style>
         body { margin: 0; }
          #glCanvas {
         display: block;
-        width: 100vh;
+        width: 100vw;
         height: 100vh;
+        image-rendering:  smooth; /* CSS3 */
+        image-rendering:  -moz-crisp-edges; /* Firefox */
     }
+   
     </style>
 </head>
     <body>
     <div class="columns">
-       <div class="column">
-         <canvas id="glCanvas">
-        </canvas></div>
+       <div class="column" style="position:relative;">
+         <canvas id="glCanvas"></canvas>
+         <button id="pauseButton" style="position:absolute; top:16px; left:1%; z-index:10; ">
+            <i id="pauseIcon" class="fa fa-pause fa-2x" style="color: #ffffff;"></i>
+        </button>
+       </div>
        <div class="column">
         <div class="box is half-width">
             <button id="createNewBody" class="has-text-link-light button-is-link">Create New Body ↓ <br></button>

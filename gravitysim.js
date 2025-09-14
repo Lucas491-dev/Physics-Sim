@@ -1,7 +1,9 @@
 const canvas = document.getElementById('glCanvas');
-    const gl = canvas.getContext('webgl');
-    if (!gl) { alert('WebGL not supported'); }
+    const gl = canvas.getContext('webgl2', { antialias: true });
+    if (!gl) alert('WebGL 2 not supported');
     let addMoreDetails = document.getElementById("moreDetailsButton")
+    const actualAntialias = gl.getContextAttributes().antialias;
+    console.log("Antialiasing enabled:", actualAntialias); // Check if antialiasing is supported
     // === Shaders ===
     const vertexShaderSource = `
     attribute vec2 aPosition;
@@ -51,7 +53,7 @@ const canvas = document.getElementById('glCanvas');
     const program = createProgram(gl, vertexShader, fragmentShader);
     gl.useProgram(program);
     const aPosition = gl.getAttribLocation(program, 'aPosition');
-    let zoom = 1.0, panX= 0, panY=0; // Initialize zoom and pan variables for the camera
+    let zoom = 0.1, panX= 0, panY=0; // Initialize zoom and pan variables for the camera
     const uView = gl.getUniformLocation(program, 'uView'); //set the uniform location for the view matrix
     let dragging = false;
 
@@ -81,43 +83,53 @@ const canvas = document.getElementById('glCanvas');
         //the use of a 3x3 is because we this is using homogeneous coordinates which is like a system of coordinates that allows for 
         // translation, rotation, and scaling in a single matrix for cartesian coordinates
         //although this is a bit goofy its standard in 2d graphics coz it can do multiple transformations in one go - should help speed up rendering 
-            return new Float32Array([
-                zoom, 0,    0,
-                0,    zoom, 0,
-                panX,    panY,    1
-            ]);
+          const aspectRatio = canvas.width / canvas.height; //prevent distortion when resizing window
+    
+        return new Float32Array([
+            zoom / aspectRatio, 0,    0,
+            0,                  zoom, 0,
+            panX,               panY, 1
+        ]);
         }
 
 
     let bodies = [
         {
-            position: [-0.5, 0.8],
-            velocity: [0.2, 0],
+            position: [-50.5, 6.8],
+            velocity: [0, -7.5],
             force: [0, 0],
-            mass: 4.8 * 10 ** 20,
-            radius: 0.01,
+            mass: 4.8 * 10 ** 26,
+            radius: 0.5,
             trailPositions: []
         },
         {
-            position: [0, 0],
-            velocity: [0, 0],
+            position: [20, 0],
+            velocity: [0, 15],
             force: [0, 0],
             mass: 8 * 10 ** 23,
             radius: 0.05,
             trailPositions: []
         },
             {
-            position: [-0.5, -0.5],
+            position: [-10.5, -0.5],
             velocity: [0, 0.3],
             force: [0, 0],
             mass: 4.8 * 10 ** 20    ,
             radius: 0.004,
             trailPositions: []
         },
+        {
+            position: [0, 0.8],
+            velocity: [0, 0],
+            force: [0, 0],
+            mass: 1.989*10  ** 30,
+            radius: 3.5,
+            trailPositions: []
+        },
     ];
     
     function drawCircle(X,Y,radius){
-        const numSegments = 500; 
+        const numSegments = 100; 
         
         let vertices = [X, Y];
         for (let i = 0; i <= numSegments; i++) {
@@ -141,18 +153,39 @@ const canvas = document.getElementById('glCanvas');
         gl.uniform4f(uColor, 1, 1, 1, 1.0); 
         gl.drawArrays(gl.TRIANGLE_FAN, 0, numSegments + 2);
     }
+function resizeCanvasToDisplaySize(canvas) {
+    const dpr = window.devicePixelRatio || 1; //consider device pixel ratio for high-DPI displays - my monitor :(
+    const width = Math.round(window.innerWidth * dpr); 
+    const height = Math.round(window.innerHeight * dpr);
+    if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+        gl.viewport(0, 0, canvas.width, canvas.height); // Update the WebGL viewport to match the new canvas size
+    }
+    canvas.style.width = "100vw";
+    canvas.style.height = "100vh";
+}
 
-canvas.width = window.innerHeight;
-canvas.height = window.innerHeight;
-gl.viewport(0, 0, canvas.width, canvas.height);
-let addNewBody = document.getElementById("createNewBody")
+window.addEventListener('resize', () => resizeCanvasToDisplaySize(canvas)); //resize canvas when window is resized
+resizeCanvasToDisplaySize(canvas); // Call once to setup canvas size initially
 gl.clearColor(0, 0, 0, 1); 
 gl.clear(gl.COLOR_BUFFER_BIT);
 let timeStep = 0.005;
 const gravity = 6.6743* 10 ** -11//gravitiational constant in m^3 kg^-1 s^-2
-let distanceScale = 2e7;
+let distanceScale = 2e8;
 let trailBuffer = gl.createBuffer();
+
+let paused = false; 
+document.getElementById("pauseButton").addEventListener("click", function(){
+    paused = !paused; //toggle the paused state
+    document.getElementById("pauseButton").innerHTML = paused ? '<i class="fa fa-play fa-2x" style="color: #ffffff;"></i>' : '<i class="fa fa-pause fa-2x" style="color: #ffffff;"></i>';
+    //update the button icon based on the paused state
+    if (!paused){
+        calculateGravity()} //if unpaused then restart the simulation loop
+});
+
 function calculateGravity(){
+    if (paused) return; // If paused, exit the function and do not continue the simulation loop
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniformMatrix3fv(uView, false, getViewMatrix()); //set view with matrix
     checkCollisions()
@@ -207,7 +240,7 @@ function updateTrailPosition(i){
         const lastX = bodies[i].trailPositions[bodies[i].trailPositions.length - 2];
         const lastY = bodies[i].trailPositions[bodies[i].trailPositions.length - 1];
         
-        const minDistance = bodies[i].radius; //distance threshold using the bodies radius
+        const minDistance = bodies[i].radius *1.5; //distance threshold using the bodies radius
         const searchEnd = Math.floor(bodies[i].trailPositions.length * 0.25); // Check the first 25% on trial pieces
         //this prevents the program from constantly removing the current trial piece as that would be within the threshold of the radius.
         
