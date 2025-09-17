@@ -7,28 +7,13 @@ let addPlanet = false; let isCreatingPlanet = false;
 let creatingPlanetIndex;
 let glowEffectEnabled = false; 
 let toggleGlowButton = document.getElementById("toggleGlowEffect");
-
+const fragmentShaderSource = await fetchShaderSource("fragmentShader.glsl");
+const vertexShaderSource = await fetchShaderSource("vertexShader.glsl");
 // === Shaders ===
-const vertexShaderSource = `
-    attribute vec2 aPosition;
-    uniform mat3 uView;   // 2D camera matrix
-    void main() {
-        vec3 pos = uView * vec3(aPosition, 1.0);
-        gl_Position = vec4(pos.xy, 0.0, 1.0);}
-    `;
-
-const fragmentShaderSource = `
-        precision mediump float;
-        uniform vec4 uColor;
-        uniform float uGlowStrength;
-
-        void main() {
-            vec2 center = vec2(0.5, 0.5);
-            float dist = length(gl_PointCoord - center);
-            float glow = pow(1.0 - smoothstep(0.0, 0.5, dist), uGlowStrength);
-            gl_FragColor = vec4(uColor.rgb, uColor.a * glow);
-    }
-    `;
+async function fetchShaderSource(url) {
+    const response = await fetch(url);
+    return await response.text();
+}
 
 // === Compile Shaders ===
 function createShader(gl, type, source) {
@@ -220,10 +205,10 @@ function drawCircle(X, Y, radius, colour) {
     
 	const uColor = gl.getUniformLocation(program, "uColor");
     if (glowEffectEnabled ==true){
-        const glowLayers = parseInt(radius +  25 ); 
+        const glowLayers = parseInt(radius +25 ); 
         for (let layer = 0; layer < glowLayers; layer++) {
-            const glowSize = radius * Math.pow(1, layer) // Each layer gets progressively larger
-            const glowOpacity = 0.1  / layer; // DecreaseS opacity for outer layers
+            const glowSize = radius * Math.pow(1.3, layer) // Each layer gets progressively larger
+            const glowOpacity = 0.15  / layer; // DecreaseS opacity for outer layers
 
             let glowVertices = [X, Y];
             for (let i = 0; i <= numSegments; i++) {
@@ -289,7 +274,7 @@ window.addEventListener("resize", () => resizeCanvasToDisplaySize(canvas)); //re
 resizeCanvasToDisplaySize(canvas); // Call once to setup canvas size initially
 gl.clearColor(0, 0, 0, 1);
 gl.enable(gl.BLEND);
-gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 gl.clear(gl.COLOR_BUFFER_BIT);
 let timeStep = 0.005;
 const gravity = 6.6743 * 10 ** -11; //gravitiational constant in m^3 kg^-1 s^-2
