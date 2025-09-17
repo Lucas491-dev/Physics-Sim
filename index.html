@@ -3,37 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>WebGL Circle</title>
+    <title>Open Orbitial Simulation</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <style>
-        body { margin: 0; }
-         #glCanvas {
-        display: block;
-        width: 100vw;
-        height: 100vh;
-        image-rendering:  smooth; /* CSS3 */
-        image-rendering:  -moz-crisp-edges; /* Firefox */
-    }
-   
-    </style>
+        <link rel="stylesheet" href="style.css">
 </head>
     <body>
     <div class="columns">
-       <div class="column" style="position:relative;">
+       <div class="column" style="position:absolute;">
          <canvas id="glCanvas"></canvas>
-         <button id="pauseButton" style="position:absolute; top:16px; left:1%; z-index:10; ">
-            <i id="pauseIcon" class="fa fa-pause fa-2x" style="color: #ffffff;"></i>
+         <button id="pauseButton" style="position:absolute; top:16px; left:1.5%; z-index:10; ">
+            <i id="pauseIcon" class="fa fa-pause fa-3x" style="color: rgb(255, 255, 255);"></i>
         </button>
+        
        </div>
        <div class="column">
-        <div class="box is half-width">
-            <button id="createNewBody" class="has-text-link-light button-is-link">Create New Body ↓ <br></button>
-            <button hidden id="moreDetailsButton">Expand Details</button>
-       
-            <input  id="changedRadius"></button>
-        </div>
+        <button id="menuButton" style="position:absolute; top:10px; right:1%; z-index:10;">
+            <i class="fa fa-bars fa-3x" style="color: rgb(255, 255, 255);"></i>
+            </button>
+        <div id="Sidenav" class="sidenav">
+            <a href="javascript:void(0)" id="closeMenu" class="closebtn">&times;</a>
+
+            <div style="color:white; padding-left:30%; top:0%; position:absolute;">
+                <h1 class="has-text-weight-extrabold is-size-3">Menu</h1>
+                </div>
+                
+                <div class="box" id="menuContainer"> 
+                    <button id="quickAdd" class="button tooltip is-bulma-primary-light-invert">Add Quick Body
+                        <span class="tooltiptext is-size-7">Click and hold anywhere <br>to spawn a body. Drag while <br> holding to give it velocity</span>
+                    </button>
+              <div class="block">
+                 <button id="toggleGlowEffect" class="button tooltip is-bulma-primary-light-invert">Toggle Glow </button>
+              </div>
+            </div>
        </div>
+       </div>
+    
 
 
     </div>
