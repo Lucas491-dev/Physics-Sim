@@ -3,16 +3,17 @@ const gl = canvas.getContext("webgl2", { antialias: true });
 if (!gl) alert("WebGL 2 not supported");
 const actualAntialias = gl.getContextAttributes().antialias;
 console.log("Antialiasing enabled:", actualAntialias); // Check if antialiasing is supported
-let addPlanet = false; let isCreatingPlanet = false;
+let addPlanet = false;
+let isCreatingPlanet = false;
 let creatingPlanetIndex;
-let glowEffectEnabled = false; 
+let glowEffectEnabled = false;
 let toggleGlowButton = document.getElementById("toggleGlowEffect");
 const fragmentShaderSource = await fetchShaderSource("fragmentShader.glsl");
 const vertexShaderSource = await fetchShaderSource("vertexShader.glsl");
 // === Shaders ===
 async function fetchShaderSource(url) {
-    const response = await fetch(url);
-    return await response.text();
+	const response = await fetch(url);
+	return await response.text();
 }
 
 // === Compile Shaders ===
@@ -201,37 +202,44 @@ let bodies = [
 ];
 function drawCircle(X, Y, radius, colour) {
 	const numSegments = 75;
-	
-    
+
 	const uColor = gl.getUniformLocation(program, "uColor");
-    if (glowEffectEnabled ==true){
-        const glowLayers = parseInt(radius +25 ); 
-        for (let layer = 0; layer < glowLayers; layer++) {
-            const glowSize = radius * Math.pow(1.3, layer) // Each layer gets progressively larger
-            const glowOpacity = 0.15  / layer; // DecreaseS opacity for outer layers
+	if (glowEffectEnabled == true) {
+		const glowLayers = parseInt(radius + 6); //number of layers with a minimum of 7
 
-            let glowVertices = [X, Y];
-            for (let i = 0; i <= numSegments; i++) {
-                let angle = (i * 2 * Math.PI) / numSegments;
-                let x = X + glowSize * Math.cos(angle);
-                let y = Y + glowSize * Math.sin(angle);
-                glowVertices.push(x, y);
-            }
+		const maxVerts = numSegments + 2;
+		const vertexBuf = new Float32Array(maxVerts * 2);
+		const glowBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, glowBuffer);
+		// allocate GPU storage once for the maximum possible size
+		//by doing this we dont have to rellocate memory for each glow layer
 
-            glowVertices = new Float32Array(glowVertices);
+		gl.bufferData(gl.ARRAY_BUFFER, vertexBuf.byteLength, gl.DYNAMIC_DRAW);
+		gl.enableVertexAttribArray(aPosition);
+		gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+		for (let layer = 1; layer < glowLayers + 1; layer++) {
+			const glowSize =  radius  + zoom * (1+ 200 * (1 - Math.pow(0.9, layer)));
+			const glowOpacity = 0.1 / layer; // Decreases opacity for outer layers
 
-            // Upload glow buffer
-            const glowBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, glowBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, glowVertices, gl.STATIC_DRAW);
-            gl.enableVertexAttribArray(aPosition);
-            gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+			let glowVertices = [X, Y];
+			for (let i = 0; i <= numSegments; i++) {
+				let angle = (i * 2 * Math.PI) / numSegments;
+				let x = X + glowSize * Math.cos(angle);
+				let y = Y + glowSize * Math.sin(angle);
+				glowVertices.push(x, y);
+			}
 
-            // Draw glow layer
-            gl.uniform4f(uColor, colour[0], colour[1], colour[2], glowOpacity);
-            gl.drawArrays(gl.TRIANGLE_FAN, 0, numSegments + 2);
-        }
-}
+			glowVertices = new Float32Array(glowVertices);
+
+			// submit the vertex data for this layer
+            // reusing the same buffer to avoid reallocating memory each time
+			gl.bufferSubData(gl.ARRAY_BUFFER, 0, glowVertices);
+			gl.uniform4f(uColor, colour[0], colour[1], colour[2], glowOpacity);
+
+			// Draw glow layer
+			gl.drawArrays(gl.TRIANGLE_FAN, 0, numSegments +2);
+		}
+	}
 	//now for the actual planet/star what not
 	let vertices = [X, Y];
 	for (let i = 0; i <= numSegments; i++) {
@@ -483,19 +491,18 @@ canvas.addEventListener("mousedown", function (e) {
 
 		const mouseX = e.clientX;
 		const mouseY = e.clientY;
-       const rect = canvas.getBoundingClientRect();
-        const canvasX = mouseX - rect.left;
-        const canvasY = mouseY - rect.top;
-        
-        // Convert to normalized coordinates (-1 to 1) using display size, not actual canvas size
-        const normX = (canvasX / rect.width) * 2 - 1;
-        const normY = 1 - (canvasY / rect.height) * 2; // Flip Y axis
-        
+		const rect = canvas.getBoundingClientRect();
+		const canvasX = mouseX - rect.left;
+		const canvasY = mouseY - rect.top;
 
-        const aspectRatio = rect.width / rect.height;
-        const worldX = (normX * aspectRatio) / zoom - panX;
-        const worldY = normY / zoom - panY;
-        // Convert mouse coordinates to world coordinates
+		// Convert to normalized coordinates (-1 to 1) using display size, not actual canvas size
+		const normX = (canvasX / rect.width) * 2 - 1;
+		const normY = 1 - (canvasY / rect.height) * 2; // Flip Y axis
+
+		const aspectRatio = rect.width / rect.height;
+		const worldX = (normX * aspectRatio) / zoom - panX;
+		const worldY = normY / zoom - panY;
+		// Convert mouse coordinates to world coordinates
 
 		bodies.push({
 			position: [worldX, worldY],
@@ -523,7 +530,7 @@ canvas.addEventListener("mousedown", function (e) {
 				const currentNormX = (currentMouseX / canvas.width) * 2 - 1;
 				const currentNormY = 1 - (currentMouseY / canvas.height) * 2;
 				const currentWorldX = (currentNormX * aspectRatio - panX) / zoom;
-				const currentWorldY = (currentNormY- panY) / zoom ;
+				const currentWorldY = (currentNormY - panY) / zoom;
 				//update the velocity of the newly added planet based on the drag distance
 				bodies[bodies.length - 1].velocity[0] = currentWorldX - worldX;
 				bodies[bodies.length - 1].velocity[1] = currentWorldY - worldY;
@@ -551,8 +558,9 @@ function increaseSize() {
 		return;
 
 	bodies[creatingPlanetIndex].radius += 0.01;
-	bodies[creatingPlanetIndex].mass += bodies[creatingPlanetIndex].radius * 10 ** 26; // Increase mass proportionally to radius increase
+	bodies[creatingPlanetIndex].mass +=
+		bodies[creatingPlanetIndex].radius * 10 ** 26; // Increase mass proportionally to radius increase
 }
 toggleGlowButton.addEventListener("click", function () {
-    glowEffectEnabled = !glowEffectEnabled;
+	glowEffectEnabled = !glowEffectEnabled;
 });
