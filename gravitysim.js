@@ -6,17 +6,17 @@ console.log("Antialiasing enabled:", actualAntialias); // Check if antialiasing 
 let addPlanet = false;
 let isCreatingPlanet = false;
 let creatingPlanetIndex;
-let glowEffectEnabled = false;
+let glowEffectEnabled = true;
 let toggleGlowButton = document.getElementById("toggleGlowEffect");
 const fragmentShaderSource = await fetchShaderSource("fragmentShader.glsl");
 const vertexShaderSource = await fetchShaderSource("vertexShader.glsl");
-// === Shaders ===
+// fetch shaders from seperate files
 async function fetchShaderSource(url) {
 	const response = await fetch(url);
 	return await response.text();
 }
 
-// === Compile Shaders ===
+//  Compile Shaders
 function createShader(gl, type, source) {
 	const shader = gl.createShader(type);
 	gl.shaderSource(shader, source);
@@ -36,7 +36,7 @@ const fragmentShader = createShader(
 	fragmentShaderSource
 );
 
-// === Create Program ===
+// === Create Program Using Shaders
 function createProgram(gl, vertexShader, fragmentShader) {
 	const program = gl.createProgram();
 	gl.attachShader(program, vertexShader);
@@ -64,7 +64,7 @@ canvas.addEventListener("wheel", function (e) {
 	e.preventDefault();
 	// Zoom in/out, when the mouse wheel is scrolled
 	zoom *= e.deltaY > 0 ? 0.9 : 1.1;
-	zoom = Math.max(0.001, Math.min(zoom, 20));
+	zoom = Math.max(0.001, Math.min(zoom, 0.1));
 	gl.uniformMatrix3fv(uView, false, getViewMatrix());
 	gl.clear(gl.COLOR_BUFFER_BIT);
 	for (let i = 0; i < bodies.length; i++) {
@@ -76,13 +76,14 @@ canvas.addEventListener("wheel", function (e) {
 		);
 	}
 	// Draw trails for each body
+
 	for (let i = 0; i < bodies.length; i++) {
 		if (bodies[i].trailPositions.length >= 4) {
 			gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
-			gl.bufferData(
+			gl.bufferSubData(
 				gl.ARRAY_BUFFER,
-				new Float32Array(bodies[i].trailPositions),
-				gl.DYNAMIC_DRAW
+				0,
+				new Float32Array(bodies[i].trailPositions)
 			);
 			gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
 			gl.enableVertexAttribArray(aPosition);
@@ -92,9 +93,12 @@ canvas.addEventListener("wheel", function (e) {
 				bodies[i].colour[0],
 				bodies[i].colour[1],
 				bodies[i].colour[2],
-				0.4
+				0.2
 			);
-			gl.drawArrays(gl.LINE_STRIP, 0, bodies[i].trailPositions.length / 2);
+			const vertexCount = Math.floor(bodies[i].trailPositions.length / 2);
+			if (vertexCount > 0) {
+				gl.drawArrays(gl.LINE_STRIP, 0, vertexCount);
+			}
 		}
 	}
 });
@@ -128,16 +132,25 @@ function onMouseMove(e) {
 		for (let i = 0; i < bodies.length; i++) {
 			if (bodies[i].trailPositions.length >= 4) {
 				gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
-				gl.bufferData(
+				gl.bufferSubData(
 					gl.ARRAY_BUFFER,
-					new Float32Array(bodies[i].trailPositions),
-					gl.DYNAMIC_DRAW
+					0,
+					new Float32Array(bodies[i].trailPositions)
 				);
 				gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
 				gl.enableVertexAttribArray(aPosition);
 				const uColor = gl.getUniformLocation(program, "uColor");
-				gl.uniform4f(uColor, 0.5, 0.5, 1.0, 0.4);
-				gl.drawArrays(gl.LINE_STRIP, 0, bodies[i].trailPositions.length / 2);
+				gl.uniform4f(
+					uColor,
+					bodies[i].colour[0],
+					bodies[i].colour[1],
+					bodies[i].colour[2],
+					0.2
+				);
+				const vertexCount = Math.floor(bodies[i].trailPositions.length / 2);
+				if (vertexCount > 0) {
+					gl.drawArrays(gl.LINE_STRIP, 0, vertexCount);
+				}
 			}
 		}
 	}
@@ -161,6 +174,11 @@ function getViewMatrix() {
 		1,
 	]);
 }
+//assigning buffers
+let trailBuffer = gl.createBuffer();
+const maxTrailPoints = 10000;
+gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, maxTrailPoints * 2 * 4, gl.DYNAMIC_DRAW);
 
 let bodies = [
 	{
@@ -205,7 +223,7 @@ function drawCircle(X, Y, radius, colour) {
 
 	const uColor = gl.getUniformLocation(program, "uColor");
 	if (glowEffectEnabled == true) {
-		const glowLayers = parseInt(radius + 6); //number of layers with a minimum of 7
+		const glowLayers = parseInt(radius + 4); //number of layers with a minimum of 7
 
 		const maxVerts = numSegments + 2;
 		const vertexBuf = new Float32Array(maxVerts * 2);
@@ -218,8 +236,8 @@ function drawCircle(X, Y, radius, colour) {
 		gl.enableVertexAttribArray(aPosition);
 		gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
 		for (let layer = 1; layer < glowLayers + 1; layer++) {
-			const glowSize =  radius  + zoom * (1+ 200 * (1 - Math.pow(0.9, layer)));
-			const glowOpacity = 0.1 / layer; // Decreases opacity for outer layers
+			const glowSize = radius + zoom * (1 + 200 * (1 - Math.pow(0.9, layer)));
+			const glowOpacity = 0.2 / layer; // Decreases opacity for outer layers
 
 			let glowVertices = [X, Y];
 			for (let i = 0; i <= numSegments; i++) {
@@ -232,12 +250,12 @@ function drawCircle(X, Y, radius, colour) {
 			glowVertices = new Float32Array(glowVertices);
 
 			// submit the vertex data for this layer
-            // reusing the same buffer to avoid reallocating memory each time
+			// reusing the same buffer to avoid reallocating memory each time
 			gl.bufferSubData(gl.ARRAY_BUFFER, 0, glowVertices);
 			gl.uniform4f(uColor, colour[0], colour[1], colour[2], glowOpacity);
 
 			// Draw glow layer
-			gl.drawArrays(gl.TRIANGLE_FAN, 0, numSegments +2);
+			gl.drawArrays(gl.TRIANGLE_FAN, 0, numSegments + 2);
 		}
 	}
 	//now for the actual planet/star what not
@@ -287,7 +305,6 @@ gl.clear(gl.COLOR_BUFFER_BIT);
 let timeStep = 0.005;
 const gravity = 6.6743 * 10 ** -11; //gravitiational constant in m^3 kg^-1 s^-2
 let distanceScale = 2e8;
-let trailBuffer = gl.createBuffer();
 
 let paused = false;
 document.getElementById("pauseButton").addEventListener("click", function () {
@@ -367,7 +384,7 @@ function calculateGravity() {
 calculateGravity();
 function updateTrailPosition(i) {
 	bodies[i].trailPositions.push(bodies[i].position[0], bodies[i].position[1]);
-	if (bodies[i].trailPositions.length > 20000) {
+	if (bodies[i].trailPositions.length > maxTrailPoints * 2) {
 		bodies[i].trailPositions.splice(0, 2);
 	}
 
@@ -376,7 +393,7 @@ function updateTrailPosition(i) {
 		const lastY = bodies[i].trailPositions[bodies[i].trailPositions.length - 1];
 
 		const minDistance = bodies[i].radius * 2; //distance threshold using the bodies radius
-		const searchEnd = Math.floor(bodies[i].trailPositions.length * 0.5); // Check the first 25% on trial pieces
+		const searchEnd = Math.floor(bodies[i].trailPositions.length * 0.5); // Check the first half on trail pieces
 		//this prevents the program from constantly removing the current trial piece as that would be within the threshold of the radius.
 
 		for (let trail = 0; trail < searchEnd; trail += 2) {
@@ -402,12 +419,11 @@ function updateTrailPosition(i) {
 	// Only render if we have valid data
 	if (bodies[i].trailPositions.length >= 4) {
 		gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
-		gl.bufferData(
+		gl.bufferSubData(
 			gl.ARRAY_BUFFER,
-			new Float32Array(bodies[i].trailPositions),
-			gl.DYNAMIC_DRAW
+			0,
+			new Float32Array(bodies[i].trailPositions)
 		);
-		gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
 		gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
 		gl.enableVertexAttribArray(aPosition);
 		const uColor = gl.getUniformLocation(program, "uColor");
@@ -416,9 +432,12 @@ function updateTrailPosition(i) {
 			bodies[i].colour[0],
 			bodies[i].colour[1],
 			bodies[i].colour[2],
-			0.4
+			0.2
 		);
-		gl.drawArrays(gl.LINE_STRIP, 0, bodies[i].trailPositions.length / 2);
+		const vertexCount = Math.floor(bodies[i].trailPositions.length / 2);
+		if (vertexCount > 0) {
+			gl.drawArrays(gl.LINE_STRIP, 0, vertexCount);
+		}
 	}
 }
 
@@ -529,8 +548,8 @@ canvas.addEventListener("mousedown", function (e) {
 				const currentMouseY = e.clientY;
 				const currentNormX = (currentMouseX / canvas.width) * 2 - 1;
 				const currentNormY = 1 - (currentMouseY / canvas.height) * 2;
-				const currentWorldX = (currentNormX * aspectRatio - panX) / zoom;
-				const currentWorldY = (currentNormY - panY) / zoom;
+				const currentWorldX = (currentNormX * aspectRatio) / zoom - 1;
+				const currentWorldY = currentNormY / zoom;
 				//update the velocity of the newly added planet based on the drag distance
 				bodies[bodies.length - 1].velocity[0] = currentWorldX - worldX;
 				bodies[bodies.length - 1].velocity[1] = currentWorldY - worldY;

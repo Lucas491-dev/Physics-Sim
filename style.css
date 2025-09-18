@@ -41,8 +41,8 @@ color: #f1f1f1;
 /* Position and style the close button (top right corner) */
 .sidenav .closebtn {
 position: absolute;
-top: 0;
-right: 25px;
+top: -1.5%;
+right: 15px;
 font-size: 36px;
 margin-left: 50px;
 }
@@ -117,4 +117,10 @@ opacity:1;
     color: white;
     border: 2px solid #363636;
     transition:all 0.3s ease;
+}
+#menuContainer{
+    padding: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    height: 100%;
 }
