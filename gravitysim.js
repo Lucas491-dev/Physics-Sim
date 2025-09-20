@@ -7,9 +7,12 @@ let addPlanet = false;
 let isCreatingPlanet = false;
 let creatingPlanetIndex;
 let glowEffectEnabled = true;
+export let velocityList = [];
+export let timeStep = 0.005; // Default time step value
 let toggleGlowButton = document.getElementById("toggleGlowEffect");
 const fragmentShaderSource = await fetchShaderSource("fragmentShader.glsl");
 const vertexShaderSource = await fetchShaderSource("vertexShader.glsl");
+import { displayGraph } from "./graphResults.js";
 // fetch shaders from seperate files
 async function fetchShaderSource(url) {
 	const response = await fetch(url);
@@ -190,6 +193,7 @@ let bodies = [
 		trailPositions: [],
 		colour: [1, 0, 0, 1],
 	},
+ 
 	{
 		position: [20, 0],
 		velocity: [0, 10],
@@ -217,6 +221,16 @@ let bodies = [
 		trailPositions: [],
 		colour: [1, 1, 0.8, 1],
 	},
+       {
+        position: [-100, 5],
+		velocity: [2, 5],
+		force: [0, 0],
+		mass: 4.8 * 10 ** 22,
+		radius: 0.01,
+		trailPositions: [],
+		colour: [1, 0, 0, 1],
+     }
+    ,
 ];
 function drawCircle(X, Y, radius, colour) {
 	const numSegments = 75;
@@ -236,7 +250,7 @@ function drawCircle(X, Y, radius, colour) {
 		gl.enableVertexAttribArray(aPosition);
 		gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
 		for (let layer = 1; layer < glowLayers + 1; layer++) {
-			const glowSize = radius + zoom * (1 + 200 * (1 - Math.pow(0.9, layer)));
+			const glowSize = radius*0.75 + ( 5 * (1 - Math.pow(0.9, layer)));
 			const glowOpacity = 0.2 / layer; // Decreases opacity for outer layers
 
 			let glowVertices = [X, Y];
@@ -302,7 +316,6 @@ gl.clearColor(0, 0, 0, 1);
 gl.enable(gl.BLEND);
 gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 gl.clear(gl.COLOR_BUFFER_BIT);
-let timeStep = 0.005;
 const gravity = 6.6743 * 10 ** -11; //gravitiational constant in m^3 kg^-1 s^-2
 let distanceScale = 2e8;
 
@@ -320,6 +333,7 @@ document.getElementById("pauseButton").addEventListener("click", function () {
 });
 
 function calculateGravity() {
+   
 	gl.uniformMatrix3fv(uView, false, getViewMatrix()); //set view with matrix
 
 	if (paused) return; // If paused, exit the function and do not continue the simulation loop
@@ -333,9 +347,12 @@ function calculateGravity() {
 
 		bodies[i].velocity[0] += (accelerationX * timeStep) / 2;
 		bodies[i].velocity[1] += (accelerationY * timeStep) / 2;
-
+       
 		bodies[i].position[0] += bodies[i].velocity[0] * timeStep;
 		bodies[i].position[1] += bodies[i].velocity[1] * timeStep;
+        if (i === 1) {
+            velocityList.push(Math.sqrt(bodies[i].velocity[0]**2 + bodies[i].velocity[1]**2))
+        }
 	}
 
 	for (let i = 0; i < bodies.length; i++) {
@@ -519,8 +536,9 @@ canvas.addEventListener("mousedown", function (e) {
 		const normY = 1 - (canvasY / rect.height) * 2; // Flip Y axis
 
 		const aspectRatio = rect.width / rect.height;
-		const worldX = (normX * aspectRatio) / zoom - panX;
-		const worldY = normY / zoom - panY;
+		const worldX = (normX * aspectRatio) / zoom + panX;
+        const worldY = normY / zoom + panY;
+
 		// Convert mouse coordinates to world coordinates
 
 		bodies.push({
@@ -583,3 +601,10 @@ function increaseSize() {
 toggleGlowButton.addEventListener("click", function () {
 	glowEffectEnabled = !glowEffectEnabled;
 });
+let timeInput=document.getElementById("timeStepInput")
+let timeDisplay=document.getElementById("timeStep")
+timeInput.addEventListener("change", function(){
+    timeStep= timeInput.value * 0.001
+    timeDisplay.innerHTML = "Time Step: " + timeStep;
+    
+})

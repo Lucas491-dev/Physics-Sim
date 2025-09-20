@@ -6,7 +6,10 @@
     <title>Open Orbitial Simulation</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-        <link rel="stylesheet" href="style.css">
+   
+    <script src="https://cdn.jsdelivr.net/npm/scichart@4.0/index.min.js" crossorigin="anonymous">
+    </script>
+        <link rel="stylesheet" href="style.css"> 
 </head>
     <body>
     <div class="columns">
@@ -15,6 +18,10 @@
          <button id="pauseButton" style="position:absolute; top:16px; left:1.5%; z-index:10; ">
             <i id="pauseIcon" class="fa fa-pause fa-3x" style="color: rgb(255, 255, 255);"></i>
         </button>
+       
+            <div class="box" id="graphBox">
+                <div id="scichart-root"></div>
+            </div>
         
        </div>
        <div class="column">
@@ -32,6 +39,13 @@
                     <button id="quickAdd" class="button tooltip is-bulma-primary-light-invert">Add Quick Body
                         <span class="tooltiptext is-size-7">Click and hold anywhere <br>to spawn a body. Drag while <br> holding to give it velocity</span>
                     </button>
+                <div class="box">
+                    <label for="timeStepInput" id="timeStep">Time Step: 0.005</label>
+                    <input type="range" id="timeStepInput" min="1" max="40" value="5">
+                </div>
+                <div class="box">
+                    <button class="button tooltip is-bulma-primary-light-invert" id="displayGraphs">Toggle Graphs</button>
+                    </div>
               <div class="block">
                  <button id="toggleGlowEffect" class="button tooltip is-bulma-primary-light-invert">Toggle Glow </button>
               </div>
@@ -43,5 +57,6 @@
 
     </div>
         <script type="module" src="gravitysim.js"></script>
+        <script type="module" src="graphResults.js"></script>
     </body>
 </html>
