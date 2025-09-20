@@ -67,7 +67,7 @@ html, body {
 	}
 }
 #tooltip {
-	display: noobe;
+	display: none;
 }
 /* Tooltip container */
 .tooltip {
@@ -92,6 +92,7 @@ html, body {
 	margin-left: -60px;
 	opacity: 0;
 	transition: opacity 1s;
+	 min-width: fit-content;
 }
 
 /* Show the tooltip text when you mouse over the tooltip container */
@@ -134,6 +135,7 @@ html, body {
 }
 #timeStepInput {
 	transition: all 0.3s ease;
+	
 }
 #graphBox {
 	position: absolute;
@@ -150,4 +152,26 @@ html, body {
     height: 100%;
     padding-bottom: 20px;
 	display: none;
+}
+.tooltiptext {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 10s;
+    background-color: black;
+	padding-right: 50px 	;
+    color: #949494;
+    padding: 5px;
+    border-radius: 6px;
+    position: absolute;
+    z-index: 1;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+#timeStepWarning {
+	 left: 20%;
+	 text-align: center;
+	 color: #b6b6b6;
 }

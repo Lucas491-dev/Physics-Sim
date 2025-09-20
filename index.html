@@ -37,12 +37,17 @@
                 
                 <div class="box" id="menuContainer"> 
                     <button id="quickAdd" class="button tooltip is-bulma-primary-light-invert">Add Quick Body
-                        <span class="tooltiptext is-size-7">Click and hold anywhere <br>to spawn a body. Drag while <br> holding to give it velocity</span>
+                        <span class="tooltiptext is-size-8" id="addingHoverText">Click and hold anywhere <br>to spawn a body. Drag while <br> holding to give it velocity</span>
                     </button>
-                <div class="box">
-                    <label for="timeStepInput" id="timeStep">Time Step: 0.005</label>
-                    <input type="range" id="timeStepInput" min="1" max="40" value="5">
-                </div>
+                      <div class="box tooltip">
+                            <label for="timeStepInput" id="timeStep">Time Step: 0.005</label>
+                            <input type="range" id="timeStepInput" min="1" max="100" value="5"
+                                class="slider is-fullwidth is-bulma-primary-light-invert">
+                            <br>
+                            <span class="tooltiptext is-size-8" id="timeStepWarning">
+                                WARNING: increasing the time step increases the error in the simulation which may cause orbits to become unstable.
+                            </span>
+                        </div>
                 <div class="box">
                     <button class="button tooltip is-bulma-primary-light-invert" id="displayGraphs">Toggle Graphs</button>
                     </div>

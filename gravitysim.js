@@ -3,6 +3,9 @@ const gl = canvas.getContext("webgl2", { antialias: true });
 if (!gl) alert("WebGL 2 not supported");
 const actualAntialias = gl.getContextAttributes().antialias;
 console.log("Antialiasing enabled:", actualAntialias); // Check if antialiasing is supported
+const gravity = 6.6743 * 10 ** -11; //gravitiational constant in m^3 kg^-1 s^-2
+let distanceScale = 2e8;
+let paused = false;
 let addPlanet = false;
 let isCreatingPlanet = false;
 let creatingPlanetIndex;
@@ -67,7 +70,7 @@ canvas.addEventListener("wheel", function (e) {
 	e.preventDefault();
 	// Zoom in/out, when the mouse wheel is scrolled
 	zoom *= e.deltaY > 0 ? 0.9 : 1.1;
-	zoom = Math.max(0.001, Math.min(zoom, 0.1));
+	zoom = Math.max(0.0001, Math.min(zoom, 0.1));
 	gl.uniformMatrix3fv(uView, false, getViewMatrix());
 	gl.clear(gl.COLOR_BUFFER_BIT);
 	for (let i = 0; i < bodies.length; i++) {
@@ -133,7 +136,7 @@ function onMouseMove(e) {
 		}
 		// Draw trails for each body while paused
 		for (let i = 0; i < bodies.length; i++) {
-			if (bodies[i].trailPositions.length >= 4) {
+			if (bodies[i].trailPositions.length >= 4 && bodies[i].parentIndex >= 0) {
 				gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
 				gl.bufferSubData(
 					gl.ARRAY_BUFFER,
@@ -192,8 +195,9 @@ let bodies = [
 		radius: 0.5,
 		trailPositions: [],
 		colour: [1, 0, 0, 1],
+		parentIndex: -1
 	},
- 
+
 	{
 		position: [20, 0],
 		velocity: [0, 10],
@@ -202,6 +206,7 @@ let bodies = [
 		radius: 0.05,
 		trailPositions: [],
 		colour: [0, 1, 0, 1],
+		parentIndex: -1
 	},
 	{
 		position: [-50, -60],
@@ -211,6 +216,7 @@ let bodies = [
 		radius: 0.004,
 		trailPositions: [],
 		colour: [0, 0, 1, 1],
+		parentIndex: -1
 	},
 	{
 		position: [0, 0.8],
@@ -220,37 +226,58 @@ let bodies = [
 		radius: 3.5,
 		trailPositions: [],
 		colour: [1, 1, 0.8, 1],
+		parentIndex: -1
 	},
-       {
-        position: [-100, 5],
+	{
+		position: [-100, 5],
 		velocity: [2, 5],
 		force: [0, 0],
 		mass: 4.8 * 10 ** 22,
 		radius: 0.01,
 		trailPositions: [],
 		colour: [1, 0, 0, 1],
-     }
-    ,
+		parentIndex: -1
+	},
+	{
+		position: [200, 0],
+		velocity: [0, 4],
+		force: [0, 0],
+		mass: 7.35 * 10 ** 25,
+		radius: 0.1,
+		trailPositions: [],
+		colour: [0, 0.8, 0.8, 1],
+		parentIndex: -1
+	},
+	{
+		position: [201, 0.5],
+		velocity: [0, 4.2000247629],
+		force: [0, 0],
+		mass: 7.35 * 10 ** 22,
+		radius: 0.02,
+		trailPositions: [],
+		colour: [0.8, 0.8, 0.8, 1],
+		parentIndex: -1
+	},
 ];
 function drawCircle(X, Y, radius, colour) {
 	const numSegments = 75;
 
 	const uColor = gl.getUniformLocation(program, "uColor");
 	if (glowEffectEnabled == true) {
-		const glowLayers = parseInt(radius + 4); //number of layers with a minimum of 7
+		const glowLayers = parseInt(radius +7); //number of layers with a minimum of 7
 
 		const maxVerts = numSegments + 2;
 		const vertexBuf = new Float32Array(maxVerts * 2);
 		const glowBuffer = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, glowBuffer);
 		// allocate GPU storage once for the maximum possible size
-		//by doing this we dont have to rellocate memory for each glow layer
+		//by doing this we dont have to rellocate memory for each glow layer speeding up rendering time
 
 		gl.bufferData(gl.ARRAY_BUFFER, vertexBuf.byteLength, gl.DYNAMIC_DRAW);
 		gl.enableVertexAttribArray(aPosition);
 		gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
 		for (let layer = 1; layer < glowLayers + 1; layer++) {
-			const glowSize = radius*0.75 + ( 5 * (1 - Math.pow(0.9, layer)));
+			const glowSize = radius + (1 + 200 * (1 - Math.pow(0.9, layer))) / zoom;
 			const glowOpacity = 0.2 / layer; // Decreases opacity for outer layers
 
 			let glowVertices = [X, Y];
@@ -316,10 +343,7 @@ gl.clearColor(0, 0, 0, 1);
 gl.enable(gl.BLEND);
 gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 gl.clear(gl.COLOR_BUFFER_BIT);
-const gravity = 6.6743 * 10 ** -11; //gravitiational constant in m^3 kg^-1 s^-2
-let distanceScale = 2e8;
 
-let paused = false;
 document.getElementById("pauseButton").addEventListener("click", function () {
 	paused = !paused; //toggle the paused state
 	document.getElementById("pauseButton").innerHTML = paused
@@ -329,11 +353,11 @@ document.getElementById("pauseButton").addEventListener("click", function () {
 
 	if (!paused) {
 		calculateGravity();
+		findOribitingPlanet();
 	} //if unpaused then restart the simulation loop
 });
 
 function calculateGravity() {
-   
 	gl.uniformMatrix3fv(uView, false, getViewMatrix()); //set view with matrix
 
 	if (paused) return; // If paused, exit the function and do not continue the simulation loop
@@ -347,12 +371,14 @@ function calculateGravity() {
 
 		bodies[i].velocity[0] += (accelerationX * timeStep) / 2;
 		bodies[i].velocity[1] += (accelerationY * timeStep) / 2;
-       
+
 		bodies[i].position[0] += bodies[i].velocity[0] * timeStep;
 		bodies[i].position[1] += bodies[i].velocity[1] * timeStep;
-        if (i === 1) {
-            velocityList.push(Math.sqrt(bodies[i].velocity[0]**2 + bodies[i].velocity[1]**2))
-        }
+		if (i === 1) {
+			velocityList.push(
+				Math.sqrt(bodies[i].velocity[0] ** 2 + bodies[i].velocity[1] ** 2)
+			);
+		}
 	}
 
 	for (let i = 0; i < bodies.length; i++) {
@@ -399,61 +425,73 @@ function calculateGravity() {
 	increaseSize(); //increase the size of the newly added planet while the mouse is held down
 }
 calculateGravity();
+findOribitingPlanet();
 function updateTrailPosition(i) {
-	bodies[i].trailPositions.push(bodies[i].position[0], bodies[i].position[1]);
-	if (bodies[i].trailPositions.length > maxTrailPoints * 2) {
-		bodies[i].trailPositions.splice(0, 2);
-	}
+	if (bodies[i].parentIndex >= 0) {
+		//if orbiting another body then store relative position to parent
+		let parent = bodies[bodies[i].parentIndex];
+		
+		bodies[i].trailPositions.push(bodies[i].position[0] - parent.position[0], bodies[i].position[1] - parent.position[1]);
 
-	if (bodies[i].trailPositions.length > 1000) {
-		const lastX = bodies[i].trailPositions[bodies[i].trailPositions.length - 2];
-		const lastY = bodies[i].trailPositions[bodies[i].trailPositions.length - 1];
+		if (bodies[i].trailPositions.length > maxTrailPoints * 2) {
+			bodies[i].trailPositions.splice(0, 2);
+		}
 
-		const minDistance = bodies[i].radius * 2; //distance threshold using the bodies radius
-		const searchEnd = Math.floor(bodies[i].trailPositions.length * 0.5); // Check the first half on trail pieces
-		//this prevents the program from constantly removing the current trial piece as that would be within the threshold of the radius.
+		if (bodies[i].trailPositions.length > 1000) {
+			const lastX = bodies[i].trailPositions[bodies[i].trailPositions.length - 2];
+			const lastY = bodies[i].trailPositions[bodies[i].trailPositions.length - 1];
 
-		for (let trail = 0; trail < searchEnd; trail += 2) {
-			let trailx = bodies[i].trailPositions[trail];
-			let trialy = bodies[i].trailPositions[trail + 1];
-			let distance = Math.sqrt((trailx - lastX) ** 2 + (trialy - lastY) ** 2);
+			const minDistance = bodies[i].radius * 2; //distance threshold using the bodies radius
+			const searchEnd = Math.floor(bodies[i].trailPositions.length * 0.5); // Check the first half on trail pieces
+			//this prevents the program from constantly removing the current trial piece as that would be within the threshold of the radius.
 
-			if (distance < minDistance) {
-				//Detect if a full rotation has been made so that some points can be deleted
-				//remove coordinates in pairs
-				bodies[i].trailPositions.splice(0, trail + 2);
-				break;
+			for (let trail = 0; trail < searchEnd; trail += 2) {
+				let trailx = bodies[i].trailPositions[trail];
+				let trialy = bodies[i].trailPositions[trail + 1];
+				let distance = Math.sqrt((trailx - lastX) ** 2 + (trialy - lastY) ** 2);
+
+				if (distance < minDistance) {
+					//Detect if a full rotation has been made so that some points can be deleted
+					//remove coordinates in pairs
+					bodies[i].trailPositions.splice(0, trail + 2);
+					break;
+				}
 			}
 		}
-	}
 
-	// Ensure array integrity
-	if (bodies[i].trailPositions.length % 2 !== 0) {
-		console.error("Trail array corrupted! Fixing...");
-		bodies[i].trailPositions.pop(); // Remove last element to make it even so that the points are even
-	}
+		// Ensure array integrity
+		if (bodies[i].trailPositions.length % 2 !== 0) {
+			console.error("Trail array corrupted! Fixing...");
+			bodies[i].trailPositions.pop(); // Remove last element to make it even so that the points are even
+		}
 
-	// Only render if we have valid data
-	if (bodies[i].trailPositions.length >= 4) {
-		gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
-		gl.bufferSubData(
-			gl.ARRAY_BUFFER,
-			0,
-			new Float32Array(bodies[i].trailPositions)
-		);
-		gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(aPosition);
-		const uColor = gl.getUniformLocation(program, "uColor");
-		gl.uniform4f(
-			uColor,
-			bodies[i].colour[0],
-			bodies[i].colour[1],
-			bodies[i].colour[2],
-			0.2
-		);
-		const vertexCount = Math.floor(bodies[i].trailPositions.length / 2);
-		if (vertexCount > 0) {
-			gl.drawArrays(gl.LINE_STRIP, 0, vertexCount);
+		// Only render if we have valid data
+		if (bodies[i].trailPositions.length >= 4) {
+			let renderPositions = []
+			for (let j = 0; j < bodies[i].trailPositions.length; j+=2) {
+				renderPositions.push(bodies[i].trailPositions[j] + parent.position[0], bodies[i].trailPositions[j+1] + parent.position[1])
+				//add relative position to parent position to get world coordinates
+			}
+			gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
+			gl.bufferSubData(
+				gl.ARRAY_BUFFER,
+				0,
+				new Float32Array(renderPositions)
+			);
+			gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray(aPosition);
+			const uColor = gl.getUniformLocation(program, "uColor");
+			gl.uniform4f(
+				uColor,
+				bodies[i].colour[0],
+				bodies[i].colour[1],
+				bodies[i].colour[2],
+				0.2
+			);
+			const vertexCount = Math.floor(renderPositions.length / 2);
+			if (vertexCount > 0) {
+				gl.drawArrays(gl.LINE_STRIP, 0, vertexCount);
+			}
 		}
 	}
 }
@@ -496,6 +534,7 @@ function checkCollisions() {
 							bodies[bodyRemove].velocity[1] * bodies[bodyRemove].mass) /
 						bodies[keepBody].mass;
 					bodies.splice(bodyRemove, 1); //remove the smaller body from the array
+					updateParentIndicesAfterRemoval(bodyRemove);
 					return; // Exit the function after a collision
 				}
 			}
@@ -525,8 +564,8 @@ canvas.addEventListener("mousedown", function (e) {
 	if (addPlanet && e.button === 0) {
 		// If the addplanet has been clicked and left mouse button is clicked
 
-		const mouseX = e.clientX;
-		const mouseY = e.clientY;
+		const mouseX = e.clientX + panX;
+		const mouseY = e.clientY + panY;
 		const rect = canvas.getBoundingClientRect();
 		const canvasX = mouseX - rect.left;
 		const canvasY = mouseY - rect.top;
@@ -536,8 +575,8 @@ canvas.addEventListener("mousedown", function (e) {
 		const normY = 1 - (canvasY / rect.height) * 2; // Flip Y axis
 
 		const aspectRatio = rect.width / rect.height;
-		const worldX = (normX * aspectRatio) / zoom + panX;
-        const worldY = normY / zoom + panY;
+		const worldX = (normX * aspectRatio) / zoom;
+		const worldY = normY / zoom;
 
 		// Convert mouse coordinates to world coordinates
 
@@ -549,6 +588,7 @@ canvas.addEventListener("mousedown", function (e) {
 			radius: 0.01,
 			trailPositions: [],
 			colour: [Math.random(), Math.random(), Math.random(), 1],
+			parentIndex: -1
 		});
 		creatingPlanetIndex = bodies.length - 1;
 		isCreatingPlanet = true;
@@ -566,11 +606,11 @@ canvas.addEventListener("mousedown", function (e) {
 				const currentMouseY = e.clientY;
 				const currentNormX = (currentMouseX / canvas.width) * 2 - 1;
 				const currentNormY = 1 - (currentMouseY / canvas.height) * 2;
-				const currentWorldX = (currentNormX * aspectRatio) / zoom - 1;
+				const currentWorldX = (currentNormX * aspectRatio) / zoom;
 				const currentWorldY = currentNormY / zoom;
 				//update the velocity of the newly added planet based on the drag distance
-				bodies[bodies.length - 1].velocity[0] = currentWorldX - worldX;
-				bodies[bodies.length - 1].velocity[1] = currentWorldY - worldY;
+				bodies[bodies.length - 1].velocity[0] = 0.75 * (currentWorldX - worldX);
+				bodies[bodies.length - 1].velocity[1] = 0.75 * (currentWorldY - worldY); //velocities are scalled down to prevent excessive speeds
 				gl.clear(gl.COLOR_BUFFER_BIT);
 			}
 		});
@@ -601,10 +641,66 @@ function increaseSize() {
 toggleGlowButton.addEventListener("click", function () {
 	glowEffectEnabled = !glowEffectEnabled;
 });
-let timeInput=document.getElementById("timeStepInput")
-let timeDisplay=document.getElementById("timeStep")
-timeInput.addEventListener("change", function(){
-    timeStep= timeInput.value * 0.001
-    timeDisplay.innerHTML = "Time Step: " + timeStep;
-    
-})
+let timeInput = document.getElementById("timeStepInput");
+let timeDisplay = document.getElementById("timeStep");
+timeInput.addEventListener("change", function () {
+	timeStep = timeInput.value * 0.001;
+	timeDisplay.innerHTML = "Time Step: " + timeStep;
+});
+function findOribitingPlanet() {
+
+	//determines the parent body index
+	if (paused == true) return; //only check when the simulation is running
+	for (let planetIndex = 0; planetIndex < bodies.length; planetIndex++) {
+		let currentParent = bodies[planetIndex].parentIndex;
+		const child = bodies[planetIndex];
+		let bestParentIndex = -1;
+		let strongestInfluence = 0;
+		for (let i = 0; i < bodies.length; i++) {
+			if (i === planetIndex) continue; // Skip self
+			const candidate = bodies[i];
+			if (candidate.mass <= child.mass) continue; // parent must be more massive
+
+			const dx = candidate.position[0] - child.position[0];
+			const dy = candidate.position[1] - child.position[1];
+			const distance = Math.sqrt(dx * dx + dy * dy) * distanceScale;
+
+
+			if (distance === 0) continue; // Prevent division by zero
+			const gravitationalInfluence = candidate.mass / (distance * distance);
+			// Simplified influence metric using Newton's law of gravitation without G and child's mass as only need ratio comparison
+
+			if (gravitationalInfluence > strongestInfluence) {
+				strongestInfluence = gravitationalInfluence;
+				bestParentIndex = i;
+			}
+			const influenceWithBonus = (i === currentParent) ? gravitationalInfluence * 2 : gravitationalInfluence;
+            //this condintional opperator gives a bonus to the current parent to prevent rapid switching between parents when influences are similar 
+			//improves the stability of orbits when coming close to stars or larger planets
+            if (influenceWithBonus > strongestInfluence) {
+                strongestInfluence = influenceWithBonus;
+                bestParentIndex = i;
+            }
+		}
+		if (bestParentIndex !== currentParent) {
+			bodies[planetIndex].parentIndex = bestParentIndex;
+			bodies[planetIndex].trailPositions = [];
+		}
+	}
+	console.log(bodies);
+	setTimeout(findOribitingPlanet, 5000); //check every 5 seconds
+	//we dont need to check this every frame as orbits dont change that quickly
+	//this helps performance a lil mostly just saves me from having to debug frame skipping issues
+}
+function updateParentIndicesAfterRemoval(removedIndex) {
+    for (let i = 0; i < bodies.length; i++) {
+        if (bodies[i].parentIndex === removedIndex) {
+            // This body was orbiting the removed one
+            bodies[i].parentIndex = -1;
+            bodies[i].trailPositions = []; 
+			//this prevents trails from being drawn to nowhere - was a bug which made these sick triangle shapes -  looked cool ngl.
+        } else if (bodies[i].parentIndex > removedIndex) {
+            bodies[i].parentIndex--;
+        }
+    }
+}

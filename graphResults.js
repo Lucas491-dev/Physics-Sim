@@ -14,7 +14,7 @@ const {
 } = SciChart;
 export let displayGraph = false;
 
-//import the parts of SciChart
+//import the parts of SciChart 
 const initSciChart = async () => {
 	const { sciChartSurface, wasmContext } = await SciChartSurface.create(
 		"scichart-root",
@@ -30,7 +30,7 @@ const initSciChart = async () => {
 		new NumericAxis(wasmContext, { axisTitle: "Time (s)" })
 	);
 	sciChartSurface.yAxes.add(
-		new NumericAxis(wasmContext, { axisTitle: "Velocity (ms)" })
+		new NumericAxis(wasmContext, { axisTitle: "Velocity (2e8 ms)" })
 	);
 
 	// Data series with FIFO so it scrolls
