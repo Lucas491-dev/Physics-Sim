@@ -264,7 +264,7 @@ function drawCircle(X, Y, radius, colour) {
 
 	const uColor = gl.getUniformLocation(program, "uColor");
 	if (glowEffectEnabled == true) {
-		const glowLayers = parseInt(radius +7); //number of layers with a minimum of 7
+		const glowLayers = parseInt(radius * 4); //number of layers with a minimum of 7
 
 		const maxVerts = numSegments + 2;
 		const vertexBuf = new Float32Array(maxVerts * 2);
@@ -277,8 +277,8 @@ function drawCircle(X, Y, radius, colour) {
 		gl.enableVertexAttribArray(aPosition);
 		gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
 		for (let layer = 1; layer < glowLayers + 1; layer++) {
-			const glowSize = radius + (1 + 200 * (1 - Math.pow(0.9, layer))) / zoom;
-			const glowOpacity = 0.2 / layer; // Decreases opacity for outer layers
+			const glowSize = radius * (1 + layer * 0.15);
+			const glowOpacity = 0.4 / (1 + layer * layer * 0.1); // Quadratic falloff for glow intencity
 
 			let glowVertices = [X, Y];
 			for (let i = 0; i <= numSegments; i++) {
@@ -687,7 +687,7 @@ function findOribitingPlanet() {
 			bodies[planetIndex].trailPositions = [];
 		}
 	}
-	console.log(bodies);
+	// console.log(bodies);
 	setTimeout(findOribitingPlanet, 5000); //check every 5 seconds
 	//we dont need to check this every frame as orbits dont change that quickly
 	//this helps performance a lil mostly just saves me from having to debug frame skipping issues
