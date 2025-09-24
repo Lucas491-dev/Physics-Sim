@@ -1,67 +1,92 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Open Orbitial Simulation</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-   
+
     <script src="https://cdn.jsdelivr.net/npm/scichart@4.0/index.min.js" crossorigin="anonymous">
     </script>
-        <link rel="stylesheet" href="style.css"> 
+    <link rel="stylesheet" href="style.css">
 </head>
-    <body>
+
+<body>
     <div class="columns">
-       <div class="column" style="position:absolute;">
-         <canvas id="glCanvas"></canvas>
-         <button id="pauseButton" style="position:absolute; top:16px; left:1.5%; z-index:10; ">
-            <i id="pauseIcon" class="fa fa-pause fa-3x" style="color: rgb(255, 255, 255);"></i>
-        </button>
-       
+        <div class="column" style="position:absolute;">
+            <canvas id="glCanvas"></canvas>
+            <button id="pauseButton" style="position:absolute; top:18px; left:1.5%; z-index:10; ">
+                <i id="pauseIcon" class="fa fa-pause fa-3x" style="color: rgb(255, 255, 255);"></i>
+            </button>
+            <div id="panCameraContainer">
+                <button id="switchLeft" class="button has-text-light">
+                    <span class="icon is-small">
+                       <i class="fa fa-arrow-left"></i>
+                    </span>
+                </button>
+              <button class="button" id="selectBodyToFocus" aria-haspopup="true" aria-controls="dropdown-menu">
+                <span id="selectBodyText">Select a Celestial Body</span>
+                <span class="icon is-large">
+                    <i class="fa fa-angle-down" aria-hidden="true"></i>
+                </span>
+            </button>
+            <div id="buttonSubContent"></div>
+                <button id="switchRight" class="button has-text-light">
+                    <span class="icon is-small">
+                        <i class="fa fa-arrow-right"></i>
+                    </span>
+                </button>
+            </div>
             <div class="box" id="graphBox">
                 <div id="scichart-root"></div>
             </div>
-        
-       </div>
-       <div class="column">
+        </div>
+    </div>
+    <div class="column">
         <button id="menuButton" style="position:absolute; top:10px; right:1%; z-index:10;">
             <i class="fa fa-bars fa-3x" style="color: rgb(255, 255, 255);"></i>
-            </button>
+        </button>
         <div id="Sidenav" class="sidenav">
             <a href="javascript:void(0)" id="closeMenu" class="closebtn">&times;</a>
 
             <div style="color:white; padding-left:30%; top:0%; position:absolute;">
                 <h1 class="has-text-weight-extrabold is-size-3">Menu</h1>
-                </div>
-                
-                <div class="box" id="menuContainer"> 
-                    <button id="quickAdd" class="button tooltip is-bulma-primary-light-invert">Add Quick Body
-                        <span class="tooltiptext is-size-8" id="addingHoverText">Click and hold anywhere <br>to spawn a body. Drag while <br> holding to give it velocity</span>
-                    </button>
-                      <div class="box tooltip">
-                            <label for="timeStepInput" id="timeStep">Time Step: 0.005</label>
-                            <input type="range" id="timeStepInput" min="1" max="100" value="5"
-                                class="slider is-fullwidth is-bulma-primary-light-invert">
-                            <br>
-                            <span class="tooltiptext is-size-8" id="timeStepWarning">
-                                WARNING: increasing the time step increases the error in the simulation which may cause orbits to become unstable.
-                            </span>
-                        </div>
-                <div class="box">
-                    <button class="button tooltip is-bulma-primary-light-invert" id="displayGraphs">Toggle Graphs</button>
-                    </div>
-              <div class="block">
-                 <button id="toggleGlowEffect" class="button tooltip is-bulma-primary-light-invert">Toggle Glow </button>
-              </div>
             </div>
-       </div>
-       </div>
-    
+
+            <div class="box" id="menuContainer">
+                <button id="quickAdd" class="button tooltip is-bulma-primary-light-invert">Add Quick Body
+                    <span class="tooltiptext is-size-8" id="addingHoverText">Click and hold anywhere <br>to spawn a
+                        body. Drag while <br> holding to give it velocity</span>
+                </button>
+                <div class="box tooltip">
+                    <label for="timeStepInput" id="timeStep">Time Step: 0.005</label>
+                    <input type="range" id="timeStepInput" min="1" max="100" value="5"
+                        class="slider is-fullwidth is-bulma-primary-light-invert">
+                    <br>
+                    <span class="tooltiptext is-size-8" id="timeStepWarning">
+                        WARNING: increasing the time step increases the error in the simulation which may cause orbits
+                        to become unstable.
+                    </span>
+                </div>
+                <div class="box">
+                    <button class="button tooltip is-bulma-primary-light-invert" id="displayGraphs">Toggle
+                        Graphs</button>
+                </div>
+                <div class="block">
+                    <button id="toggleGlowEffect" class="button tooltip is-bulma-primary-light-invert">Toggle Glow
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
 
     </div>
-        <script type="module" src="gravitysim.js"></script>
-        <script type="module" src="graphResults.js"></script>
-    </body>
+    <script type="module" src="gravitysim.js"></script>
+    <script type="module" src="graphResults.js"></script>
+</body>
+
 </html>

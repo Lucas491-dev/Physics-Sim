@@ -175,3 +175,51 @@ html, body {
 	 text-align: center;
 	 color: #b6b6b6;
 }
+#panCameraContainer{
+	display: flex;         
+    justify-content: center; 
+    align-items: center;          
+    position: absolute;    
+    top: 1.5%;              
+    left: 50%;              
+    transform: translateX(-50%); 
+}
+#selectBodyToFocus{
+	width: min-content;
+}
+#buttonSubContent{
+	  opacity: 0;
+    position: absolute;
+    top: 5vh;
+    left: 50%;
+    transform: translateX(-50%);
+    
+    display: flex;
+    flex-direction: column;  
+    align-items: stretch;  
+    
+    width: 200px;           
+    max-height: 100px;    
+    overflow-y: auto;  
+    
+    background: #222;  
+    border-radius: 8px;
+    padding: 5px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    
+    transition: opacity 0.3s;
+}
+#selectBodyToFocus:hover + #buttonSubContent,
+#buttonSubContent:hover {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+
+#buttonSubContent a span {
+	 margin: 2px 0;
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin: 2px 0;
+}

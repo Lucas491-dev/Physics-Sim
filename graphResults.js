@@ -13,7 +13,7 @@ const {
 	ZoomExtentsModifier,
 } = SciChart;
 export let displayGraph = false;
-
+SciChartSurface.UseCommunityLicense();
 //import the parts of SciChart 
 const initSciChart = async () => {
 	const { sciChartSurface, wasmContext } = await SciChartSurface.create(

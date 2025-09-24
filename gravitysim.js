@@ -12,10 +12,13 @@ let creatingPlanetIndex;
 let glowEffectEnabled = true;
 export let velocityList = [];
 export let timeStep = 0.005; // Default time step value
+let currentCameraIndex = -1;
+let focusOnPlanet = false;
 let toggleGlowButton = document.getElementById("toggleGlowEffect");
 const fragmentShaderSource = await fetchShaderSource("fragmentShader.glsl");
 const vertexShaderSource = await fetchShaderSource("vertexShader.glsl");
 import { displayGraph } from "./graphResults.js";
+
 // fetch shaders from seperate files
 async function fetchShaderSource(url) {
 	const response = await fetch(url);
@@ -70,7 +73,10 @@ canvas.addEventListener("wheel", function (e) {
 	e.preventDefault();
 	// Zoom in/out, when the mouse wheel is scrolled
 	zoom *= e.deltaY > 0 ? 0.9 : 1.1;
-	zoom = Math.max(0.0001, Math.min(zoom, 0.1));
+	zoom = Math.max(0.0001, Math.min(zoom, 1));
+	if (focusOnPlanet) {
+		moveCameraWithPlanet();
+	}
 	gl.uniformMatrix3fv(uView, false, getViewMatrix());
 	gl.clear(gl.COLOR_BUFFER_BIT);
 	for (let i = 0; i < bodies.length; i++) {
@@ -120,7 +126,9 @@ function onMouseMove(e) {
 	if (dragging == true) {
 		// If not dragging, do nothing
 		// Pan the camera when the mouse is moved while holding down the left button
-
+		focusOnPlanet = false; //reset the planet focus upon input
+		document.getElementById("selectBodyText").innerText = "Select a Celestial Body" //reset button text
+			
 		panX += (e.movementX / canvas.width) * 2;
 		panY -= (e.movementY / canvas.height) * 2; // Invert Y-axis
 		gl.uniformMatrix3fv(uView, false, getViewMatrix()); // update the view matrix with the new pan and zoom values
@@ -195,7 +203,8 @@ let bodies = [
 		radius: 0.5,
 		trailPositions: [],
 		colour: [1, 0, 0, 1],
-		parentIndex: -1
+		parentIndex: -1,
+		name: "KE 23510",
 	},
 
 	{
@@ -206,17 +215,8 @@ let bodies = [
 		radius: 0.05,
 		trailPositions: [],
 		colour: [0, 1, 0, 1],
-		parentIndex: -1
-	},
-	{
-		position: [-50, -60],
-		velocity: [0, 0],
-		force: [0, 0],
-		mass: 4.8 * 10 ** 20,
-		radius: 0.004,
-		trailPositions: [],
-		colour: [0, 0, 1, 1],
-		parentIndex: -1
+		parentIndex: -1,
+		name: "KE 11504",
 	},
 	{
 		position: [0, 0.8],
@@ -226,7 +226,8 @@ let bodies = [
 		radius: 3.5,
 		trailPositions: [],
 		colour: [1, 1, 0.8, 1],
-		parentIndex: -1
+		parentIndex: -1,
+		name: "KE 11504",
 	},
 	{
 		position: [-100, 5],
@@ -236,7 +237,8 @@ let bodies = [
 		radius: 0.01,
 		trailPositions: [],
 		colour: [1, 0, 0, 1],
-		parentIndex: -1
+		parentIndex: -1,
+		name: "KE 31245",
 	},
 	{
 		position: [200, 0],
@@ -246,7 +248,8 @@ let bodies = [
 		radius: 0.1,
 		trailPositions: [],
 		colour: [0, 0.8, 0.8, 1],
-		parentIndex: -1
+		parentIndex: -1,
+		name: "KE 512",
 	},
 	{
 		position: [201, 0.5],
@@ -256,7 +259,8 @@ let bodies = [
 		radius: 0.02,
 		trailPositions: [],
 		colour: [0.8, 0.8, 0.8, 1],
-		parentIndex: -1
+		parentIndex: -1,
+		name: "KE 12317",
 	},
 ];
 function drawCircle(X, Y, radius, colour) {
@@ -264,7 +268,7 @@ function drawCircle(X, Y, radius, colour) {
 
 	const uColor = gl.getUniformLocation(program, "uColor");
 	if (glowEffectEnabled == true) {
-		const glowLayers = parseInt(radius * 4); //number of layers with a minimum of 7
+		const glowLayers = parseInt(radius * 3 + 2); //number of layer
 
 		const maxVerts = numSegments + 2;
 		const vertexBuf = new Float32Array(maxVerts * 2);
@@ -277,8 +281,8 @@ function drawCircle(X, Y, radius, colour) {
 		gl.enableVertexAttribArray(aPosition);
 		gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
 		for (let layer = 1; layer < glowLayers + 1; layer++) {
-			const glowSize = radius * (1 + layer * 0.15);
-			const glowOpacity = 0.4 / (1 + layer * layer * 0.1); // Quadratic falloff for glow intencity
+			const glowSize = radius * (1 + 2 * (1 - Math.pow(0.9, layer)));
+			const glowOpacity = 0.2 / (1 + layer * layer * 0.1); // Quadratic falloff for glow intencity
 
 			let glowVertices = [X, Y];
 			for (let i = 0; i <= numSegments; i++) {
@@ -420,7 +424,9 @@ function calculateGravity() {
 			bodies[i].colour
 		);
 	}
-
+	if (focusOnPlanet == true) {
+		moveCameraWithPlanet(); //update camera position
+	}
 	requestAnimationFrame(calculateGravity);
 	increaseSize(); //increase the size of the newly added planet while the mouse is held down
 }
@@ -430,16 +436,21 @@ function updateTrailPosition(i) {
 	if (bodies[i].parentIndex >= 0) {
 		//if orbiting another body then store relative position to parent
 		let parent = bodies[bodies[i].parentIndex];
-		
-		bodies[i].trailPositions.push(bodies[i].position[0] - parent.position[0], bodies[i].position[1] - parent.position[1]);
+
+		bodies[i].trailPositions.push(
+			bodies[i].position[0] - parent.position[0],
+			bodies[i].position[1] - parent.position[1]
+		);
 
 		if (bodies[i].trailPositions.length > maxTrailPoints * 2) {
 			bodies[i].trailPositions.splice(0, 2);
 		}
 
 		if (bodies[i].trailPositions.length > 1000) {
-			const lastX = bodies[i].trailPositions[bodies[i].trailPositions.length - 2];
-			const lastY = bodies[i].trailPositions[bodies[i].trailPositions.length - 1];
+			const lastX =
+				bodies[i].trailPositions[bodies[i].trailPositions.length - 2];
+			const lastY =
+				bodies[i].trailPositions[bodies[i].trailPositions.length - 1];
 
 			const minDistance = bodies[i].radius * 2; //distance threshold using the bodies radius
 			const searchEnd = Math.floor(bodies[i].trailPositions.length * 0.5); // Check the first half on trail pieces
@@ -467,17 +478,16 @@ function updateTrailPosition(i) {
 
 		// Only render if we have valid data
 		if (bodies[i].trailPositions.length >= 4) {
-			let renderPositions = []
-			for (let j = 0; j < bodies[i].trailPositions.length; j+=2) {
-				renderPositions.push(bodies[i].trailPositions[j] + parent.position[0], bodies[i].trailPositions[j+1] + parent.position[1])
+			let renderPositions = [];
+			for (let j = 0; j < bodies[i].trailPositions.length; j += 2) {
+				renderPositions.push(
+					bodies[i].trailPositions[j] + parent.position[0],
+					bodies[i].trailPositions[j + 1] + parent.position[1]
+				);
 				//add relative position to parent position to get world coordinates
 			}
 			gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
-			gl.bufferSubData(
-				gl.ARRAY_BUFFER,
-				0,
-				new Float32Array(renderPositions)
-			);
+			gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(renderPositions));
 			gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
 			gl.enableVertexAttribArray(aPosition);
 			const uColor = gl.getUniformLocation(program, "uColor");
@@ -580,6 +590,14 @@ canvas.addEventListener("mousedown", function (e) {
 
 		// Convert mouse coordinates to world coordinates
 
+		let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+		let letterName = "";
+		for (var i = 0; i < 2; i++) {
+			letterName += characters.charAt(
+				Math.floor(Math.random() * characters.length)
+			);
+		}
+		let numberName = parseInt(Math.random() * 10 ** 5);
 		bodies.push({
 			position: [worldX, worldY],
 			velocity: [0, 0],
@@ -588,7 +606,8 @@ canvas.addEventListener("mousedown", function (e) {
 			radius: 0.01,
 			trailPositions: [],
 			colour: [Math.random(), Math.random(), Math.random(), 1],
-			parentIndex: -1
+			parentIndex: -1,
+			name: letterName + " " + numberName,
 		});
 		creatingPlanetIndex = bodies.length - 1;
 		isCreatingPlanet = true;
@@ -622,6 +641,7 @@ canvas.addEventListener("mousedown", function (e) {
 			creatingPlanetIndex = -1;
 			canvas.removeEventListener("mouseup", onRelease); // Remove this mouseup listener
 			canvas.addEventListener("mousemove", onMouseMove); // Re-enable camera panning
+			updateNameList();
 		});
 	}
 });
@@ -648,7 +668,6 @@ timeInput.addEventListener("change", function () {
 	timeDisplay.innerHTML = "Time Step: " + timeStep;
 });
 function findOribitingPlanet() {
-
 	//determines the parent body index
 	if (paused == true) return; //only check when the simulation is running
 	for (let planetIndex = 0; planetIndex < bodies.length; planetIndex++) {
@@ -665,7 +684,6 @@ function findOribitingPlanet() {
 			const dy = candidate.position[1] - child.position[1];
 			const distance = Math.sqrt(dx * dx + dy * dy) * distanceScale;
 
-
 			if (distance === 0) continue; // Prevent division by zero
 			const gravitationalInfluence = candidate.mass / (distance * distance);
 			// Simplified influence metric using Newton's law of gravitation without G and child's mass as only need ratio comparison
@@ -674,13 +692,16 @@ function findOribitingPlanet() {
 				strongestInfluence = gravitationalInfluence;
 				bestParentIndex = i;
 			}
-			const influenceWithBonus = (i === currentParent) ? gravitationalInfluence * 2 : gravitationalInfluence;
-            //this condintional opperator gives a bonus to the current parent to prevent rapid switching between parents when influences are similar 
+			const influenceWithBonus =
+				i === currentParent
+					? gravitationalInfluence * 2
+					: gravitationalInfluence;
+			//this condintional opperator gives a bonus to the current parent to prevent rapid switching between parents when influences are similar
 			//improves the stability of orbits when coming close to stars or larger planets
-            if (influenceWithBonus > strongestInfluence) {
-                strongestInfluence = influenceWithBonus;
-                bestParentIndex = i;
-            }
+			if (influenceWithBonus > strongestInfluence) {
+				strongestInfluence = influenceWithBonus;
+				bestParentIndex = i;
+			}
 		}
 		if (bestParentIndex !== currentParent) {
 			bodies[planetIndex].parentIndex = bestParentIndex;
@@ -693,14 +714,88 @@ function findOribitingPlanet() {
 	//this helps performance a lil mostly just saves me from having to debug frame skipping issues
 }
 function updateParentIndicesAfterRemoval(removedIndex) {
-    for (let i = 0; i < bodies.length; i++) {
-        if (bodies[i].parentIndex === removedIndex) {
-            // This body was orbiting the removed one
-            bodies[i].parentIndex = -1;
-            bodies[i].trailPositions = []; 
+	updateNameList();
+	for (let i = 0; i < bodies.length; i++) {
+		if (bodies[i].parentIndex === removedIndex) {
+			// This body was orbiting the removed one
+			bodies[i].parentIndex = -1;
+			bodies[i].trailPositions = [];
 			//this prevents trails from being drawn to nowhere - was a bug which made these sick triangle shapes -  looked cool ngl.
-        } else if (bodies[i].parentIndex > removedIndex) {
-            bodies[i].parentIndex--;
-        }
-    }
+		} else if (bodies[i].parentIndex > removedIndex) {
+			bodies[i].parentIndex--;
+		}
+	}
+}
+let switchCameraLeft = document.getElementById("switchLeft");
+let switchCameraRight = document.getElementById("switchRight");
+switchCameraLeft.addEventListener("click", () => updateCameraIndex(-1));
+switchCameraRight.addEventListener("click", () => updateCameraIndex(1));
+function updateCameraIndex(i) {
+	//upddate the current camera index by shifting it left or right depending on the button used.
+	focusOnPlanet = true;
+	currentCameraIndex += i;
+	if (currentCameraIndex > bodies.length - 1) {
+		currentCameraIndex = 0; //reset camera index
+	}
+	if (currentCameraIndex < 0) {
+		currentCameraIndex = bodies.length - 1;
+	}
+
+	// console.log(bodies[currentCameraIndex])
+	document.getElementById("selectBodyText").innerText = bodies[currentCameraIndex].name
+	updateNameList()
+}
+
+function moveCameraWithPlanet() {
+	let bodyX = bodies[currentCameraIndex].position[0];
+	let bodyY = bodies[currentCameraIndex].position[1];
+
+	const aspectRatio = canvas.width / canvas.height;
+
+	// Divide by aspect ratio to account for the view matrix transformation
+	const targetPanX = (-bodyX * zoom) / aspectRatio;
+	const targetPanY = -bodyY * zoom;
+	//update camera positions
+	panX = targetPanX;
+	panY = targetPanY;
+}
+function updateNameList() {
+	const container = document.getElementById("buttonSubContent");
+	container.innerHTML = ""; // clear previous buttons
+
+	for (let i = 0; i < bodies.length; i++) {
+		if (currentCameraIndex === i) continue; // skip current planet
+
+		const buttonEl = document.createElement("a");
+		const buttonTextEl = document.createElement("span");
+
+		buttonTextEl.className = "button has-background-grey-darker";
+		buttonTextEl.innerText = bodies[i].name;
+
+
+		const [r, g, b, a] = bodies[i].colour;
+		const colorDot = document.createElement("span");
+		colorDot.style.display = "inline-block";
+		colorDot.style.width = "12px";
+		colorDot.style.height = "12px";
+		colorDot.style.borderRadius = "50%";
+		colorDot.style.marginRight = "8px";
+		colorDot.style.backgroundColor = `rgba(${r * 255}, ${g * 255}, ${b * 255}, ${1})`;
+		buttonTextEl.dataset.index = i;
+		buttonTextEl.prepend(colorDot);
+		//adds a coloured dot to make it more visable which planet each option is - incase my crappy naming convention didnt make it clear
+		 buttonTextEl.addEventListener("click", () => {
+			updatePlanetButton(bodies[i].name, parseInt(buttonTextEl.dataset.index))
+        });
+		buttonEl.appendChild(buttonTextEl);
+		container.appendChild(buttonEl);
+	}
+}
+
+updateNameList()
+function updatePlanetButton(name, index){
+	focusOnPlanet = true;
+	currentCameraIndex = index;
+	document.getElementById("selectBodyText").innerText = name;
+	updateNameList() 
 }
