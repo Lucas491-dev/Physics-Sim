@@ -12,12 +12,11 @@ let creatingPlanetIndex;
 let glowEffectEnabled = true;
 export let velocityList = [];
 export let timeStep = 0.005; // Default time step value
-let currentCameraIndex = -1;
+export let currentCameraIndex = -1;
 let focusOnPlanet = false;
 let toggleGlowButton = document.getElementById("toggleGlowEffect");
 const fragmentShaderSource = await fetchShaderSource("fragmentShader.glsl");
 const vertexShaderSource = await fetchShaderSource("vertexShader.glsl");
-import { displayGraph } from "./graphResults.js";
 
 // fetch shaders from seperate files
 async function fetchShaderSource(url) {
@@ -127,6 +126,8 @@ function onMouseMove(e) {
 		// If not dragging, do nothing
 		// Pan the camera when the mouse is moved while holding down the left button
 		focusOnPlanet = false; //reset the planet focus upon input
+		currentCameraIndex = -1
+		updateNameList()
 		document.getElementById("selectBodyText").innerText = "Select a Celestial Body" //reset button text
 			
 		panX += (e.movementX / canvas.width) * 2;
@@ -194,7 +195,7 @@ const maxTrailPoints = 10000;
 gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
 gl.bufferData(gl.ARRAY_BUFFER, maxTrailPoints * 2 * 4, gl.DYNAMIC_DRAW);
 
-let bodies = [
+export let bodies = [
 	{
 		position: [-50.5, 6.8],
 		velocity: [0, -7.5],
@@ -378,7 +379,7 @@ function calculateGravity() {
 
 		bodies[i].position[0] += bodies[i].velocity[0] * timeStep;
 		bodies[i].position[1] += bodies[i].velocity[1] * timeStep;
-		if (i === 1) {
+		if (i === currentCameraIndex) {
 			velocityList.push(
 				Math.sqrt(bodies[i].velocity[0] ** 2 + bodies[i].velocity[1] ** 2)
 			);
@@ -732,6 +733,7 @@ switchCameraLeft.addEventListener("click", () => updateCameraIndex(-1));
 switchCameraRight.addEventListener("click", () => updateCameraIndex(1));
 function updateCameraIndex(i) {
 	//upddate the current camera index by shifting it left or right depending on the button used.
+	velocityList = []
 	focusOnPlanet = true;
 	currentCameraIndex += i;
 	if (currentCameraIndex > bodies.length - 1) {
@@ -762,7 +764,7 @@ function moveCameraWithPlanet() {
 function updateNameList() {
 	const container = document.getElementById("buttonSubContent");
 	container.innerHTML = ""; // clear previous buttons
-
+	velocityList = []
 	for (let i = 0; i < bodies.length; i++) {
 		if (currentCameraIndex === i) continue; // skip current planet
 

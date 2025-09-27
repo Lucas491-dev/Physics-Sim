@@ -188,7 +188,7 @@ html, body {
 	width: min-content;
 }
 #buttonSubContent{
-	  opacity: 0;
+	opacity: 0;
     position: absolute;
     top: 5vh;
     left: 50%;

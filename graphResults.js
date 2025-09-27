@@ -1,4 +1,9 @@
-import { timeStep, velocityList } from "./gravitysim.js";
+import {
+	timeStep,
+	velocityList,
+	currentCameraIndex,
+	bodies,
+} from "./gravitysim.js";
 //import timestep and the list of velocities from the module handling the sim
 const {
 	SciChartSurface,
@@ -14,13 +19,13 @@ const {
 } = SciChart;
 export let displayGraph = false;
 SciChartSurface.UseCommunityLicense();
-//import the parts of SciChart 
+//import the parts of SciChart
 const initSciChart = async () => {
 	const { sciChartSurface, wasmContext } = await SciChartSurface.create(
 		"scichart-root",
 		{
 			theme: new SciChartJSDarkv2Theme(),
-			title: "Velocity of Planet 2 Over Time",
+			title: "Velocity of " + (bodies?.[currentCameraIndex]?.name ?? "Unknown"),
 			titleStyle: { fontSize: 15 },
 		}
 	);
@@ -61,7 +66,7 @@ const initSciChart = async () => {
 const { dataSeries, sciChartSurface } = await initSciChart();
 let lastAppendIndex = 0; // index in velocityList we've appended up to
 let t = 0;
-
+let LastIValue;
 function renderLoop() {
 	// Append all new velocities that have been pushed since last frame
 	while (lastAppendIndex < velocityList.length) {
@@ -70,9 +75,12 @@ function renderLoop() {
 		t += timeStep;
 		lastAppendIndex++;
 	}
-
+	if (LastIValue != currentCameraIndex) {
+		updateChartTitle();
+	}
+	LastIValue = currentCameraIndex;
 	// keep the visible window
-	const windowSeconds = 10;
+	const windowSeconds = 100;
 	sciChartSurface.xAxes.get(0).visibleRange = new NumberRange(
 		Math.max(0, t - windowSeconds),
 		t
@@ -83,13 +91,26 @@ function renderLoop() {
 }
 document.getElementById("displayGraphs").addEventListener("click", () => {
 	if (displayGraph == false) {
-    displayGraph = true
+		updateChartTitle();
+		if (currentCameraIndex == -1){
+			alert("Please Select A Planet!")
+		}else{
+		displayGraph = true;
 		document.getElementById("scichart-root").style.display = "block";
-    document.getElementById("graphBox").style.display = "block";
+		document.getElementById("graphBox").style.display = "block";
 		requestAnimationFrame(renderLoop);
+		}
 	} else {
-    displayGraph= false
+		displayGraph = false;
 		document.getElementById("scichart-root").style.display = "none";
-    document.getElementById("graphBox").style.display = "none";
+		document.getElementById("graphBox").style.display = "none";
 	}
 });
+function updateChartTitle() {
+	if (bodies && bodies[currentCameraIndex]) {
+		sciChartSurface.title = "Velocity of " + bodies[currentCameraIndex].name; //update the title
+		t = 0;
+		dataSeries.clear();
+		lastAppendIndex = 0; //reset the last appended time
+	}
+}
