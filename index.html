@@ -23,16 +23,16 @@
             <div id="panCameraContainer">
                 <button id="switchLeft" class="button has-text-light">
                     <span class="icon is-small">
-                       <i class="fa fa-arrow-left"></i>
+                        <i class="fa fa-arrow-left"></i>
                     </span>
                 </button>
-              <button class="button" id="selectBodyToFocus" aria-haspopup="true" aria-controls="dropdown-menu">
-                <span id="selectBodyText">Select a Celestial Body</span>
-                <span class="icon is-large">
-                    <i class="fa fa-angle-down" aria-hidden="true"></i>
-                </span>
-            </button>
-            <div id="buttonSubContent"></div>
+                <button class="button" id="selectBodyToFocus" aria-haspopup="true" aria-controls="dropdown-menu">
+                    <span id="selectBodyText">Select a Celestial Body</span>
+                    <span class="icon is-large">
+                        <i class="fa fa-angle-down" aria-hidden="true"></i>
+                    </span>
+                </button>
+                <div id="buttonSubContent"></div>
                 <button id="switchRight" class="button has-text-light">
                     <span class="icon is-small">
                         <i class="fa fa-arrow-right"></i>
@@ -74,6 +74,18 @@
                     <button class="button tooltip is-bulma-primary-light-invert" id="displayGraphs">Toggle
                         Graphs</button>
                 </div>
+                <div class="box">
+                    <button class="button tooltip is-bulma-primary-light-invert" id="show2ndFoci">Display Second Focus
+                        Point</button>
+                </div>
+                <div class="box">
+                    <button class="button tooltip is-bulma-primary-light-invert" id="toggleSpacetimeGrid">
+                        Toggle Spacetime Grid
+                        <span class="tooltiptext is-size-8">
+                            Visualize spacetime curvature around massive objects
+                        </span>
+                    </button>
+                </div>
                 <div class="block">
                     <button id="toggleGlowEffect" class="button tooltip is-bulma-primary-light-invert">Toggle Glow
                     </button>
@@ -87,6 +99,9 @@
     </div>
     <script type="module" src="gravitysim.js"></script>
     <script type="module" src="graphResults.js"></script>
+    <script type="module" src="orbitalMechanics.js"></script>
+    <script type="module" src="spaceTimeVisual.js"></script>
+
 </body>
 
 </html>

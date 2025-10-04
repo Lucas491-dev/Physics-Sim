@@ -1,23 +1,26 @@
 const canvas = document.getElementById("glCanvas");
-const gl = canvas.getContext("webgl2", { antialias: true });
+export const gl = canvas.getContext("webgl2", { antialias: true });
 if (!gl) alert("WebGL 2 not supported");
 const actualAntialias = gl.getContextAttributes().antialias;
 console.log("Antialiasing enabled:", actualAntialias); // Check if antialiasing is supported
 const gravity = 6.6743 * 10 ** -11; //gravitiational constant in m^3 kg^-1 s^-2
-let distanceScale = 2e8;
+import { drawSpacetimeGrid, toggleSpacetimeGrid, initSpacetimeVisualization } from "./spaceTimeVisual.js";
+
+export let distanceScale = 2e8;
 let paused = false;
 let addPlanet = false;
 let isCreatingPlanet = false;
 let creatingPlanetIndex;
-let glowEffectEnabled = true;
+let glowEffectEnabled = true; 
+let spaceTimeEnabled =false;
 export let velocityList = [];
 export let timeStep = 0.005; // Default time step value
 export let currentCameraIndex = -1;
 let focusOnPlanet = false;
+initSpacetimeVisualization(gl);
 let toggleGlowButton = document.getElementById("toggleGlowEffect");
 const fragmentShaderSource = await fetchShaderSource("fragmentShader.glsl");
 const vertexShaderSource = await fetchShaderSource("vertexShader.glsl");
-
 // fetch shaders from seperate files
 async function fetchShaderSource(url) {
 	const response = await fetch(url);
@@ -62,7 +65,7 @@ gl.useProgram(program);
 const uGlowStrength = gl.getUniformLocation(program, "uGlowStrength");
 gl.uniform1f(uGlowStrength, 2.0); // Try values between 1.5 and 4.0 for different glow strengths
 const aPosition = gl.getAttribLocation(program, "aPosition");
-let zoom = 0.01,
+export let zoom = 0.01,
 	panX = 0,
 	panY = 0; // Initialize zoom and pan variables for the camera
 const uView = gl.getUniformLocation(program, "uView"); //set the uniform location for the view matrix
@@ -170,7 +173,7 @@ function onMouseMove(e) {
 		}
 	}
 }
-function getViewMatrix() {
+export function getViewMatrix() { 
 	//uses a 3x3 matrix to represent the 2D camera position and zoom level
 	//the use of a 3x3 is because we this is using homogeneous coordinates which is like a system of coordinates that allows for
 	// translation, rotation, and scaling in a single matrix for cartesian coordinates
@@ -228,7 +231,7 @@ export let bodies = [
 		trailPositions: [],
 		colour: [1, 1, 0.8, 1],
 		parentIndex: -1,
-		name: "KE 11504",
+		name: "Sun",
 	},
 	{
 		position: [-100, 5],
@@ -364,7 +367,7 @@ document.getElementById("pauseButton").addEventListener("click", function () {
 
 function calculateGravity() {
 	gl.uniformMatrix3fv(uView, false, getViewMatrix()); //set view with matrix
-
+	
 	if (paused) return; // If paused, exit the function and do not continue the simulation loop
 	gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -427,6 +430,9 @@ function calculateGravity() {
 	}
 	if (focusOnPlanet == true) {
 		moveCameraWithPlanet(); //update camera position
+	}
+	if(spaceTimeEnabled ==true){
+		drawSpacetimeGrid();
 	}
 	requestAnimationFrame(calculateGravity);
 	increaseSize(); //increase the size of the newly added planet while the mouse is held down
@@ -801,3 +807,7 @@ function updatePlanetButton(name, index){
 	document.getElementById("selectBodyText").innerText = name;
 	updateNameList() 
 }
+document.getElementById("toggleSpacetimeGrid").addEventListener("click", function() {
+    spaceTimeEnabled = !spaceTimeEnabled;
+    toggleSpacetimeGrid();
+});
