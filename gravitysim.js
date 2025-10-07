@@ -73,6 +73,7 @@ let dragging = false;
 
 canvas.addEventListener("wheel", function (e) {
 	e.preventDefault();
+	// console.log(zoom)
 	// Zoom in/out, when the mouse wheel is scrolled
 	zoom *= e.deltaY > 0 ? 0.9 : 1.1;
 	zoom = Math.max(0.0001, Math.min(zoom, 1));
@@ -114,6 +115,10 @@ canvas.addEventListener("wheel", function (e) {
 				gl.drawArrays(gl.LINE_STRIP, 0, vertexCount);
 			}
 		}
+	}
+	if(spaceTimeEnabled ==true){
+		drawSpacetimeGrid();
+		gl.useProgram(program);//reset the program to prevent visual artififacts
 	}
 });
 canvas.addEventListener("mousedown", function (e) {
@@ -171,6 +176,10 @@ function onMouseMove(e) {
 				}
 			}
 		}
+		if(spaceTimeEnabled ==true){
+			drawSpacetimeGrid(); //makes sure spacetimegrid is still moving when we pause	
+			gl.useProgram(program);
+	}
 	}
 }
 export function getViewMatrix() { 
@@ -433,7 +442,9 @@ function calculateGravity() {
 	}
 	if(spaceTimeEnabled ==true){
 		drawSpacetimeGrid();
+		
 	}
+	gl.useProgram(program);
 	requestAnimationFrame(calculateGravity);
 	increaseSize(); //increase the size of the newly added planet while the mouse is held down
 }
@@ -663,7 +674,7 @@ function increaseSize() {
 
 	bodies[creatingPlanetIndex].radius += 0.01;
 	bodies[creatingPlanetIndex].mass +=
-		bodies[creatingPlanetIndex].radius * 10 ** 26; // Increase mass proportionally to radius increase
+		bodies[creatingPlanetIndex].radius * 10 ** 28; // Increase mass proportionally to radius increase
 }
 toggleGlowButton.addEventListener("click", function () {
 	glowEffectEnabled = !glowEffectEnabled;

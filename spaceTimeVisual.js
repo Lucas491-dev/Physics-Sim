@@ -1,4 +1,4 @@
-import { bodies, getViewMatrix } from "./gravitysim.js"; 
+import { bodies, getViewMatrix,panX,panY,zoom } from "./gravitysim.js"; 
 
 console.log("SpaceTime visualization loaded");
 
@@ -8,7 +8,7 @@ let gridProgramInfo = null;
 let gridBuffers = null;
 let gridEnabled = false;
 let initialized = false;
-
+//initialize the variables 
 // Initialize the spacetime visualization system
 export async function initSpacetimeVisualization(webglContext) {
     gl = webglContext;
@@ -42,6 +42,7 @@ export async function initSpacetimeVisualization(webglContext) {
 }
 
 async function loadShaderSource(url) {
+  //load in shader program from seperate files
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to load shader: ${url}`);
@@ -62,6 +63,7 @@ function createShader(gl, type, source) {
 }
 
 function createProgram(gl, vertexShader, fragmentShader) {
+  //define the shader program using the vertex and fragment shader
   const program = gl.createProgram();
   gl.attachShader(program, vertexShader);
   gl.attachShader(program, fragmentShader);
@@ -72,15 +74,15 @@ function createProgram(gl, vertexShader, fragmentShader) {
   }
   return program;
 }
-
 function createGrid(size = 20, divisions = 60) {
+ 
 	const positions = [];
 	const step = (2 * size) / divisions;
 	
 	// Create grid vertices
 	for (let i = 0; i <= divisions; i++) {
 		for (let j = 0; j <= divisions; j++) {
-			const x = -size + j * step;
+			const x = -size + j * step ;
 			const y = -size + i * step;
 			positions.push(x, y);
 		}
@@ -114,7 +116,8 @@ function createGrid(size = 20, divisions = 60) {
 }
 
 function initGridBuffers(gl) {
-	const grid = createGrid(100, 50); 
+  //initalize the vram once and then reallocate it each frame - speeds up performance
+	const grid = createGrid(200, 100); 
 	
 	const positionBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -134,8 +137,8 @@ function initGridBuffers(gl) {
 // Export function to draw the grid
 export function drawSpacetimeGrid() {
     if (!initialized || !gridEnabled) return;
-    
-    // Use the grid shader program
+    //exit if we havent initalized the function or if the grid hasnt been selected 
+    // Use the grid specific shader program
     gl.useProgram(gridProgram);
     
     // Bind position buffer
@@ -150,21 +153,20 @@ export function drawSpacetimeGrid() {
     gl.uniformMatrix3fv(gridProgramInfo.uniformLocations.view, false, getViewMatrix());
     
     // Prepare mass data for shader
-    const maxBodies = 10; // Limit for shader uniform arrays
+    const maxBodies = 10; // Limit for shader uniform arrays - prevents it from overloading devices
     const massPositions = new Float32Array(maxBodies * 2);
     const masses = new Float32Array(maxBodies);
-    
+    // uses float32 arrays to send data in the correct format for webgl
     const numBodies = Math.min(bodies.length, maxBodies);
     
     for (let i = 0; i < numBodies; i++) {
         massPositions[i * 2] = bodies[i].position[0];
         massPositions[i * 2 + 1] = bodies[i].position[1];
-        // Scale mass respective to earth mass to get a a more normalized effect
-       const normalizedMass = bodies[i].mass / (10 ** 24); // Earth masses
-       masses[i] = Math.pow(normalizedMass, 0.5); // Power less than 1 compresses the range
+       masses[i] = bodies[i].mass
     }
     
     // Set uniforms
+    
     gl.uniform2fv(gridProgramInfo.uniformLocations.massPositions, massPositions);
     gl.uniform1fv(gridProgramInfo.uniformLocations.masses, masses);
     gl.uniform1i(gridProgramInfo.uniformLocations.numBodies, numBodies);

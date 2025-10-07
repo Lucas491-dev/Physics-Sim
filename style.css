@@ -220,6 +220,16 @@ html, body {
 	 margin: 2px 0;
     display: block;
     width: 100%;
-    text-align: center;
+    text-align: left;
     margin: 2px 0;
 }
+
+ #spaceTimeWarning {
+  text-align: center;
+  color: #b6b6b6;
+  width: 100%;
+  left:25%;
+  white-space: normal; 
+  word-wrap: break-word;
+}
+
