@@ -17,9 +17,10 @@ const {
 	ZoomPanModifier,
 	ZoomExtentsModifier,
 } = SciChart;
+//import the sections i need
 export let displayGraph = false;
-SciChartSurface.UseCommunityLicense();
-//import the parts of SciChart
+SciChartSurface.UseCommunityLicense(); //set license so it stops complaining
+
 const initSciChart = async () => {
 	const { sciChartSurface, wasmContext } = await SciChartSurface.create(
 		"scichart-root",
@@ -30,17 +31,19 @@ const initSciChart = async () => {
 		}
 	);
 
-	// Axes
+	// X-axis
 	sciChartSurface.xAxes.add(
 		new NumericAxis(wasmContext, { axisTitle: "Time (s)" })
 	);
+	//Y-axis
 	sciChartSurface.yAxes.add(
 		new NumericAxis(wasmContext, { axisTitle: "Velocity (2e8 ms)" })
 	);
 
 	// Data series with FIFO so it scrolls
-	const dataSeries = new XyDataSeries(wasmContext, { fifoCapacity: 2000 }); // keep last 200 points
-
+	const dataSeries = new XyDataSeries(wasmContext, { fifoCapacity: 20000 }); 
+	//keep only a set number of points
+	//define the line series
 	const lineSeries = new FastLineRenderableSeries(wasmContext, {
 		stroke: "steelblue",
 		strokeThickness: 3,
@@ -74,6 +77,7 @@ function renderLoop() {
 		dataSeries.append(t, v);
 		t += timeStep;
 		lastAppendIndex++;
+		//add another item with the current time
 	}
 	if (LastIValue != currentCameraIndex) {
 		updateChartTitle();
@@ -108,7 +112,7 @@ document.getElementById("displayGraphs").addEventListener("click", () => {
 });
 function updateChartTitle() {
 	if (bodies && bodies[currentCameraIndex]) {
-		sciChartSurface.title = "Velocity of " + bodies[currentCameraIndex].name; //update the title
+		sciChartSurface.title = "Velocity of " + bodies[currentCameraIndex].name; //update the title with current title
 		t = 0;
 		dataSeries.clear();
 		lastAppendIndex = 0; //reset the last appended time

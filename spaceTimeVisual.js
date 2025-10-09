@@ -8,14 +8,13 @@ let gridProgramInfo = null;
 let gridBuffers = null;
 let gridEnabled = false;
 let initialized = false;
-//initialize the variables 
-// Initialize the spacetime visualization system
+// Initialize the spacetime visualization system ONLY when content is loaded
 export async function initSpacetimeVisualization(webglContext) {
     gl = webglContext;
     
     const fragmentShaderSource = await loadShaderSource("gridFragmentShader.glsl");
     const vertexShaderSource = await loadShaderSource("gridVertexShader.glsl");
-    
+    //load in shaders
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
     const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
     
@@ -78,36 +77,27 @@ function createGrid(size = 20, divisions = 60) {
  
 	const positions = [];
 	const step = (2 * size) / divisions;
-	
+	const indices =[];
 	// Create grid vertices
 	for (let i = 0; i <= divisions; i++) {
-		for (let j = 0; j <= divisions; j++) {
-			const x = -size + j * step ;
-			const y = -size + i * step;
-			positions.push(x, y);
-		}
-	}
-	
-	// Create line indices for grid lines
-	const indices = [];
-	
-	// Horizontal lines
-	for (let i = 0; i <= divisions; i++) {
-		for (let j = 0; j < divisions; j++) {
-			const start = i * (divisions + 1) + j;
-			const end = start + 1;
-			indices.push(start, end);
-		}
-	}
-	
-	// Vertical lines
-	for (let j = 0; j <= divisions; j++) {
-		for (let i = 0; i < divisions; i++) {
-			const start = i * (divisions + 1) + j;
-			const end = start + (divisions + 1);
-			indices.push(start, end);
-		}
-	}
+    for (let j = 0; j <= divisions; j++) {
+      const x = -size + j * step;
+      const y = -size + i * step;
+      positions.push(x, y);
+      
+      const currentIndex = i * (divisions + 1) + j;
+      
+      //check we arent in the last collum so we can add horzontal lines
+      if (j < divisions) {
+        indices.push(currentIndex, currentIndex + 1);
+      }
+      
+      // check we aren't in the last row so we can add vertical lines
+      if (i < divisions) {
+        indices.push(currentIndex, currentIndex + (divisions + 1));
+      }
+    }
+  }
 
 	return {
 		positions: new Float32Array(positions),
@@ -170,7 +160,7 @@ export function drawSpacetimeGrid() {
     gl.uniform2fv(gridProgramInfo.uniformLocations.massPositions, massPositions);
     gl.uniform1fv(gridProgramInfo.uniformLocations.masses, masses);
     gl.uniform1i(gridProgramInfo.uniformLocations.numBodies, numBodies);
-    gl.uniform4f(gridProgramInfo.uniformLocations.color, 0.3, 0.3, 0.8, 0.4); // Semi-transparent blue
+    gl.uniform4f(gridProgramInfo.uniformLocations.color, 0.3, 0.3, 0.8, 0.4);
     
     // Draw grid lines
     gl.drawElements(gl.LINES, gridBuffers.vertexCount, gl.UNSIGNED_SHORT, 0);

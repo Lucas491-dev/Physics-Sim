@@ -16,15 +16,15 @@ void main() {
     for (int i = 0; i < 10; i++) {
         if (i >= uNumBodies) break;
         
-        // Always calculate from ORIGINAL aPosition
+        // calculate from ORIGINAL aPosition
         vec2 diff = aPosition - uMassPositions[i];
         float distance = length(diff);
         
         if (distance > 0.06) {  // Minimum distance threshold
-            float massScale = pow(uMasses[i] / 1e24, 1.2); 
+            float massScale = pow(uMasses[i] / 1e24, 5.0);  //scale masses
             distance = max(distance, 0.4);
             float influence = massScale / (distance * distance);
-            influence = influence / (0.9 + influence * 0.9);
+            influence = influence / (0.9 + influence);
             //the smoothing was causing things to be off centre so i toned it down
             
             vec2 direction = normalize(diff);

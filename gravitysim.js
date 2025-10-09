@@ -4,8 +4,8 @@ if (!gl) alert("WebGL 2 not supported");
 const actualAntialias = gl.getContextAttributes().antialias;
 console.log("Antialiasing enabled:", actualAntialias); // Check if antialiasing is supported
 const gravity = 6.6743 * 10 ** -11; //gravitiational constant in m^3 kg^-1 s^-2
-import { drawSpacetimeGrid, toggleSpacetimeGrid, initSpacetimeVisualization } from "./spaceTimeVisual.js";
-
+import { drawSpacetimeGrid, toggleSpacetimeGrid, initSpacetimeVisualization} from "./spaceTimeVisual.js";
+import {createVectors} from "./drawVectors.js";
 export let distanceScale = 2e8;
 let paused = false;
 let addPlanet = false;
@@ -13,6 +13,7 @@ let isCreatingPlanet = false;
 let creatingPlanetIndex;
 let glowEffectEnabled = true; 
 let spaceTimeEnabled =false;
+export let showingVectors =false;
 export let velocityList = [];
 export let timeStep = 0.005; // Default time step value
 export let currentCameraIndex = -1;
@@ -60,14 +61,14 @@ function createProgram(gl, vertexShader, fragmentShader) {
 	return program;
 }
 
-const program = createProgram(gl, vertexShader, fragmentShader);
+export const program = createProgram(gl, vertexShader, fragmentShader);
 gl.useProgram(program);
 const uGlowStrength = gl.getUniformLocation(program, "uGlowStrength");
-gl.uniform1f(uGlowStrength, 2.0); // Try values between 1.5 and 4.0 for different glow strengths
+gl.uniform1f(uGlowStrength, 2.0);
 const aPosition = gl.getAttribLocation(program, "aPosition");
-export let zoom = 0.01,
-	panX = 0,
-	panY = 0; // Initialize zoom and pan variables for the camera
+export let zoom = 0.01;
+export let panX = 0;
+export let panY = 0; // Initialize zoom and pan variables for the camera
 const uView = gl.getUniformLocation(program, "uView"); //set the uniform location for the view matrix
 let dragging = false;
 
@@ -118,8 +119,12 @@ canvas.addEventListener("wheel", function (e) {
 	}
 	if(spaceTimeEnabled ==true){
 		drawSpacetimeGrid();
-		gl.useProgram(program);//reset the program to prevent visual artififacts
+		gl.useProgram(program);
+		//reset the program to prevent visual artififacts
 	}
+	if(showingVectors==true){
+			createVectors()
+		}
 });
 canvas.addEventListener("mousedown", function (e) {
 	if (e.button === 0) {
@@ -134,6 +139,7 @@ function onMouseMove(e) {
 		// If not dragging, do nothing
 		// Pan the camera when the mouse is moved while holding down the left button
 		focusOnPlanet = false; //reset the planet focus upon input
+		showingVectors = false; //reset the vectors
 		currentCameraIndex = -1
 		updateNameList()
 		document.getElementById("selectBodyText").innerText = "Select a Celestial Body" //reset button text
@@ -179,7 +185,9 @@ function onMouseMove(e) {
 		if(spaceTimeEnabled ==true){
 			drawSpacetimeGrid(); //makes sure spacetimegrid is still moving when we pause	
 			gl.useProgram(program);
-	}
+		}if(showingVectors==true){
+			createVectors()
+		}
 	}
 }
 export function getViewMatrix() { 
@@ -375,8 +383,6 @@ document.getElementById("pauseButton").addEventListener("click", function () {
 });
 
 function calculateGravity() {
-	gl.uniformMatrix3fv(uView, false, getViewMatrix()); //set view with matrix
-	
 	if (paused) return; // If paused, exit the function and do not continue the simulation loop
 	gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -424,6 +430,7 @@ function calculateGravity() {
 			}
 		}
 	}
+	gl.uniformMatrix3fv(uView, false, getViewMatrix()); //set view with matrix
 	for (let i = 0; i < bodies.length; i++) {
 		let accelerationX = bodies[i].force[0] / bodies[i].mass; // a=f/m
 		let accelerationY = bodies[i].force[1] / bodies[i].mass;
@@ -442,9 +449,11 @@ function calculateGravity() {
 	}
 	if(spaceTimeEnabled ==true){
 		drawSpacetimeGrid();
-		
+		gl.useProgram(program);
 	}
-	gl.useProgram(program);
+	if(showingVectors==true){
+			createVectors()
+		}
 	requestAnimationFrame(calculateGravity);
 	increaseSize(); //increase the size of the newly added planet while the mouse is held down
 }
@@ -712,7 +721,7 @@ function findOribitingPlanet() {
 			}
 			const influenceWithBonus =
 				i === currentParent
-					? gravitationalInfluence * 2
+					? gravitationalInfluence * 1.2
 					: gravitationalInfluence;
 			//this condintional opperator gives a bonus to the current parent to prevent rapid switching between parents when influences are similar
 			//improves the stability of orbits when coming close to stars or larger planets
@@ -822,3 +831,11 @@ document.getElementById("toggleSpacetimeGrid").addEventListener("click", functio
     spaceTimeEnabled = !spaceTimeEnabled;
     toggleSpacetimeGrid();
 });
+document.getElementById("showVectors").addEventListener("click", function(){
+	if (focusOnPlanet == true){
+  		showingVectors = !showingVectors
+		createVectors()
+	}else{
+		alert("Please Select a planet")
+	}
+})

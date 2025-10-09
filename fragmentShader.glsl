@@ -1,7 +1,7 @@
 #version 300 es
 precision lowp float;       
 
-uniform vec4 uColor;           // rgb + base alpha
+uniform vec4 uColor;       
 uniform float uGlowStrength;   
 out vec4 outColor;
 
@@ -9,7 +9,7 @@ void main() {
    
     vec2 uv = gl_PointCoord - 0.5;
     float d = length(uv);                
-    // smooth radial falloff: inner bright radius -> outer fade out
+    // smooth radial falloff: inner bright radius
     float alpha = smoothstep(0.6, 0.0, d); 
     alpha *= uGlowStrength;
     
