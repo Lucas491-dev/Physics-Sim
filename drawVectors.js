@@ -1,8 +1,8 @@
-import { currentCameraIndex, bodies, getViewMatrix, gl, program } from "./gravitysim.js";
-export function createVectors() {
-	let currentVelocity = bodies[currentCameraIndex].velocity;
-	let currentForce = bodies[currentCameraIndex].force;
-	let currentPosition = bodies[currentCameraIndex].position;
+import { bodies, getViewMatrix, gl, program } from "./gravitysim.js";
+export function createVectors(i) {
+	let currentVelocity = bodies[i].velocity;
+	let currentForce = bodies[i].force;
+	let currentPosition = bodies[i].position;
 	// console.log(currentVelocity, currentForce);
 	drawVector(currentPosition, currentVelocity, "v", 1, [0, 0, 1, 1]); 
 	drawVector(currentPosition, currentForce, "F", 2e-24, [1, 0, 0, 1]); 
@@ -18,7 +18,7 @@ function drawVector(origin, vector, type, scale, color) {
 	//atan2 prevents division by 0
 	let arrowScale = 0.1* Math.sqrt((endY-startY)**2 + (endX-startX)**2 );
 	//scale arrows length relative to length of vector
-	arrowScale = Math.min(Math.max(arrowScale, 0.05), 2)
+	arrowScale = Math.min(Math.max(arrowScale, 0.05), 1.5)
 	//set limits for arrow scale- cant be greater than 2 or les than 0.05
 	const leftArrowVertex = [endX +arrowScale*(Math.cos(phi+165*Math.PI/180)), endY+ arrowScale*(Math.sin(phi+165*Math.PI/180))];
 	const rightArrowVertex =[endX + arrowScale*(Math.cos(phi+195*Math.PI/180)), endY + arrowScale*(Math.sin(phi+195*Math.PI/180))];

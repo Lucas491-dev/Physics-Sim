@@ -94,27 +94,8 @@ canvas.addEventListener("wheel", function (e) {
 	// Draw trails for each body
 
 	for (let i = 0; i < bodies.length; i++) {
-		if (bodies[i].trailPositions.length >= 4) {
-			gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
-			gl.bufferSubData(
-				gl.ARRAY_BUFFER,
-				0,
-				new Float32Array(bodies[i].trailPositions)
-			);
-			gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
-			gl.enableVertexAttribArray(aPosition);
-			const uColor = gl.getUniformLocation(program, "uColor");
-			gl.uniform4f(
-				uColor,
-				bodies[i].colour[0],
-				bodies[i].colour[1],
-				bodies[i].colour[2],
-				0.2
-			);
-			const vertexCount = Math.floor(bodies[i].trailPositions.length / 2);
-			if (vertexCount > 0) {
-				gl.drawArrays(gl.LINE_STRIP, 0, vertexCount);
-			}
+		if (bodies[i].trailPositions.length >= 4 &&bodies[i].parentIndex >=0) {
+			renderTrailPositions(i);//call update trail position
 		}
 	}
 	if(spaceTimeEnabled ==true){
@@ -123,7 +104,7 @@ canvas.addEventListener("wheel", function (e) {
 		//reset the program to prevent visual artififacts
 	}
 	if(showingVectors==true){
-			createVectors()
+			createVectors(currentCameraIndex)
 		}
 });
 canvas.addEventListener("mousedown", function (e) {
@@ -160,33 +141,14 @@ function onMouseMove(e) {
 		// Draw trails for each body while paused
 		for (let i = 0; i < bodies.length; i++) {
 			if (bodies[i].trailPositions.length >= 4 && bodies[i].parentIndex >= 0) {
-				gl.bindBuffer(gl.ARRAY_BUFFER, trailBuffer);
-				gl.bufferSubData(
-					gl.ARRAY_BUFFER,
-					0,
-					new Float32Array(bodies[i].trailPositions)
-				);
-				gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
-				gl.enableVertexAttribArray(aPosition);
-				const uColor = gl.getUniformLocation(program, "uColor");
-				gl.uniform4f(
-					uColor,
-					bodies[i].colour[0],
-					bodies[i].colour[1],
-					bodies[i].colour[2],
-					0.2
-				);
-				const vertexCount = Math.floor(bodies[i].trailPositions.length / 2);
-				if (vertexCount > 0) {
-					gl.drawArrays(gl.LINE_STRIP, 0, vertexCount);
-				}
+				renderTrailPositions(i);//call update trail position
 			}
 		}
 		if(spaceTimeEnabled ==true){
 			drawSpacetimeGrid(); //makes sure spacetimegrid is still moving when we pause	
 			gl.useProgram(program);
 		}if(showingVectors==true){
-			createVectors()
+			createVectors(currentCameraIndex)
 		}
 	}
 }
@@ -385,7 +347,6 @@ document.getElementById("pauseButton").addEventListener("click", function () {
 function calculateGravity() {
 	if (paused) return; // If paused, exit the function and do not continue the simulation loop
 	gl.clear(gl.COLOR_BUFFER_BIT);
-
 	checkCollisions();
 	for (let i = 0; i < bodies.length; i++) {
 		//half step velocity and add to positions
@@ -451,8 +412,8 @@ function calculateGravity() {
 		drawSpacetimeGrid();
 		gl.useProgram(program);
 	}
-	if(showingVectors==true){
-			createVectors()
+		if(showingVectors==true){
+				createVectors(currentCameraIndex)
 		}
 	requestAnimationFrame(calculateGravity);
 	increaseSize(); //increase the size of the newly added planet while the mouse is held down
@@ -505,7 +466,14 @@ function updateTrailPosition(i) {
 
 		// Only render if we have valid data
 		if (bodies[i].trailPositions.length >= 4) {
-			let renderPositions = [];
+			renderTrailPositions(i)
+		}
+	}
+}
+function renderTrailPositions(i){
+	let renderPositions = [];
+	let parentIndex = bodies[i].parentIndex;
+	let parent = bodies[parentIndex];
 			for (let j = 0; j < bodies[i].trailPositions.length; j += 2) {
 				renderPositions.push(
 					bodies[i].trailPositions[j] + parent.position[0],
@@ -529,10 +497,7 @@ function updateTrailPosition(i) {
 			if (vertexCount > 0) {
 				gl.drawArrays(gl.LINE_STRIP, 0, vertexCount);
 			}
-		}
-	}
 }
-
 function checkCollisions() {
 	for (let i = bodies.length - 1; i >= 0; i--) {
 		//iterate through each body
@@ -834,7 +799,7 @@ document.getElementById("toggleSpacetimeGrid").addEventListener("click", functio
 document.getElementById("showVectors").addEventListener("click", function(){
 	if (focusOnPlanet == true){
   		showingVectors = !showingVectors
-		createVectors()
+		createVectors(currentCameraIndex)
 	}else{
 		alert("Please Select a planet")
 	}
