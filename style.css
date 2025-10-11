@@ -118,7 +118,7 @@ html, body {
 	width: 50%;
 	margin: 0 auto;
 	position: absolute;
-	bottom: 0%;
+	bottom: 30%;
 	left: 5%;
 	display: block;
 	padding: 5px;
@@ -233,3 +233,17 @@ html, body {
   word-wrap: break-word;
 }
 
+#controlButtonContainer{
+	position:absolute;
+	bottom: 2%;
+}
+.tutorial-container {
+            position: absolute;
+            top: 0px;
+            right: 0px;
+            width: 400px;
+            z-index: 100;
+        }
+#tutorialText{
+	color: #ffffff;
+}

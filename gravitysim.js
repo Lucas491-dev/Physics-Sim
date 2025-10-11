@@ -17,7 +17,7 @@ export let showingVectors =false;
 export let velocityList = [];
 export let timeStep = 0.005; // Default time step value
 export let currentCameraIndex = -1;
-let focusOnPlanet = false;
+export let focusOnPlanet = false;
 initSpacetimeVisualization(gl);
 let toggleGlowButton = document.getElementById("toggleGlowEffect");
 const fragmentShaderSource = await fetchShaderSource("fragmentShader.glsl");
@@ -211,17 +211,6 @@ export let bodies = [
 		colour: [1, 1, 0.8, 1],
 		parentIndex: -1,
 		name: "Sun",
-	},
-	{
-		position: [-100, 5],
-		velocity: [2, 5],
-		force: [0, 0],
-		mass: 4.8 * 10 ** 22,
-		radius: 0.01,
-		trailPositions: [],
-		colour: [1, 0, 0, 1],
-		parentIndex: -1,
-		name: "KE 31245",
 	},
 	{
 		position: [200, 0],
@@ -648,7 +637,7 @@ function increaseSize() {
 
 	bodies[creatingPlanetIndex].radius += 0.01;
 	bodies[creatingPlanetIndex].mass +=
-		bodies[creatingPlanetIndex].radius * 10 ** 28; // Increase mass proportionally to radius increase
+		bodies[creatingPlanetIndex].radius * 10 ** 26; // Increase mass proportionally to radius increase
 }
 toggleGlowButton.addEventListener("click", function () {
 	glowEffectEnabled = !glowEffectEnabled;
@@ -804,3 +793,40 @@ document.getElementById("showVectors").addEventListener("click", function(){
 		alert("Please Select a planet")
 	}
 })
+document.getElementById('resetButton').addEventListener("click", function(){
+	paused = true;
+	focusOnPlanet = false;
+	bodies =[];
+	gl.clear(gl.COLOR_BUFFER_BIT);
+	document.getElementById("pauseButton").innerHTML = '<i class="fa fa-play fa-3x" style="color: rgba(255, 255, 255, 1);"></i>'
+	updateNameList()
+})
+document.getElementById('saveButton').addEventListener("click", function(){
+	localStorage.setItem("saveData", JSON.stringify(bodies));
+})
+document.getElementById('loadButton').addEventListener("click", function(){
+	bodies = JSON.parse(localStorage.getItem("saveData"));
+})
+export function setTutorialCamera(bodyIndex) {
+	//export switching the camera for the turorial
+    if (bodyIndex >= 0 && bodyIndex < bodies.length) {
+        currentCameraIndex = bodyIndex;
+        focusOnPlanet = true;
+        document.getElementById("selectBodyText").innerText = bodies[bodyIndex].name;
+        updateNameList();
+    }
+}
+export function setTutorialVector(i) {
+	if (focusOnPlanet == true && i==true){
+  		showingVectors = true;
+		createVectors(currentCameraIndex)
+	}else{
+		showingVectors = false;
+	}
+}
+export function setTutorialSpacetimeGrid(i) {
+ 	spaceTimeEnabled = i;
+	if (i==true){
+    	toggleSpacetimeGrid();
+	}
+}

@@ -7,7 +7,8 @@
     <title>Open Orbitial Simulation</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-
+   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/scichart@4.0/index.min.js" crossorigin="anonymous">
     </script>
     <link rel="stylesheet" href="style.css">
@@ -44,6 +45,23 @@
             </div>
         </div>
     </div>
+<div class="tutorial-container">
+        <div class="box">
+            <div class="mb-3">
+                <p class="title is-5" id="tutorialTitle">Tutorial</p>
+                <p id="tutorialText">Welcome to the gravity simulator!</p>
+                <progress id="progressBar" class="progress is-primary" value="0" max="15" style="margin-top: 1rem;"></progress>
+                <p style="text-align: center; margin-top: 0.5rem; font-size: 0.875rem; color: #ffffff;">
+                    <span id="currentStep">1</span> / <span id="totalSteps">5</span>
+                </p>
+            </div>
+            <div class="buttons">
+                <button class="button" id="prevBtn"> <i class="fa fa-arrow-left"></i></button>
+                <button class="button" id="nextBtn"><i class="fa fa-arrow-right"></i></button>
+                <button class="button is-danger" id="exitBtn">Exit</button>
+            </div>
+        </div>
+    </div>
     <div class="column">
         <button id="menuButton" style="position:absolute; top:10px; right:1%; z-index:10;">
             <i class="fa fa-bars fa-3x" style="color: rgb(255, 255, 255);"></i>
@@ -75,10 +93,6 @@
                         Graphs</button>
                 </div>
                 <div class="box">
-                    <button class="button tooltip is-bulma-primary-light-invert" id="show2ndFoci">Display Second Focus
-                        Point</button>
-                </div>
-                <div class="box">
                     <button class="button tooltip is-bulma-primary-light-invert" id="toggleSpacetimeGrid">
                         Toggle Spacetime Grid
                         <span class="tooltiptext is-size-8" id="spaceTimeWarning">
@@ -87,26 +101,38 @@
                     </button>
                 </div>
                 <div class="block">
-                    <button id="showVectors" class="button tooltip is-bulma-primary-light-invert">Display Vectors For Current Planet
+                    <button id="showVectors" class="button tooltip is-bulma-primary-light-invert">Display Vectors For
+                        Current Planet
                     </button>
                 </div>
                 <div class="block">
                     <button id="toggleGlowEffect" class="button tooltip is-bulma-primary-light-invert">Toggle Glow
                     </button>
                 </div>
+                <div class="block" id="controlButtonContainer">
+                    <div class="columns">
+                        <div class="column">
+                            <button class="button tooltip is-bulma-primary-light-invert" id="saveButton"v>Save</button>
+                        </div>
+                        <div class="column">
+                            <button class="button tooltip is-bulma-primary-light-invert" id="loadButton">Load</button>
+                        </div>
+                        <div class="column">
+                            <button class="button tooltip is-bulma-primary-light-invert" id="resetButton">Reset</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
 
 
     </div>
     <script type="module" src="gravitysim.js"></script>
     <script type="module" src="graphResults.js"></script>
-    <script type="module" src="orbitalMechanics.js"></script>
     <script type="module" src="spaceTimeVisual.js"></script>
     <script type="module" src="drawVectors.js"></script>
-
+    <script type="module" src="tutorial.js"></script>
 </body>
 
 </html>

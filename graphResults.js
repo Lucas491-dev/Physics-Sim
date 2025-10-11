@@ -41,7 +41,7 @@ const initSciChart = async () => {
 	);
 
 	// Data series with FIFO so it scrolls
-	const dataSeries = new XyDataSeries(wasmContext, { fifoCapacity: 20000 }); 
+	const dataSeries = new XyDataSeries(wasmContext, { fifoCapacity: 20000 });
 	//keep only a set number of points
 	//define the line series
 	const lineSeries = new FastLineRenderableSeries(wasmContext, {
@@ -96,13 +96,13 @@ function renderLoop() {
 document.getElementById("displayGraphs").addEventListener("click", () => {
 	if (displayGraph == false) {
 		updateChartTitle();
-		if (currentCameraIndex == -1){
-			alert("Please Select A Planet!")
-		}else{
-		displayGraph = true;
-		document.getElementById("scichart-root").style.display = "block";
-		document.getElementById("graphBox").style.display = "block";
-		requestAnimationFrame(renderLoop);
+		if (currentCameraIndex == -1) {
+			alert("Please Select A Planet!");
+		} else {
+			displayGraph = true;
+			document.getElementById("scichart-root").style.display = "block";
+			document.getElementById("graphBox").style.display = "block";
+			requestAnimationFrame(renderLoop);
 		}
 	} else {
 		displayGraph = false;
@@ -116,5 +116,17 @@ function updateChartTitle() {
 		t = 0;
 		dataSeries.clear();
 		lastAppendIndex = 0; //reset the last appended time
+	}
+}
+export function setGraphForTutorial(i) {
+	displayGraph = i;
+	if (i == true) {
+		updateChartTitle();
+		document.getElementById("scichart-root").style.display = "block";
+		document.getElementById("graphBox").style.display = "block";
+		requestAnimationFrame(renderLoop);
+	}else{
+		document.getElementById("scichart-root").style.display = "none";
+		document.getElementById("graphBox").style.display = "none";
 	}
 }
