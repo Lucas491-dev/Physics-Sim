@@ -1,10 +1,13 @@
-attribute vec2 aPosition;
+#version 300 es
+in vec2 aPosition;
 uniform mat3 uView;
 uniform vec2 uMassPositions[10];
 uniform float uMasses[10];
 uniform int uNumBodies;
-varying vec2 vOriginalPosition;
-varying vec2 vWorldPosition;
+
+out vec2 vOriginalPosition;
+out vec2 vWorldPosition;
+
 
 void main() {
     vOriginalPosition = aPosition;
